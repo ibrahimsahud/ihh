@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="tr" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IHH Yönetim Sistemi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">IHH</div>
+                <div class="logo-text">
+                    <h2>IHH</h2>
+                    <p>Yönetim Sistemi</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-link active" data-page="dashboard">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>Kontrol Paneli</span>
+            </a>
+
+            <a href="#" class="nav-link" data-page="donors">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span>Bağışçılar</span>
+            </a>
+
+            <a href="#" class="nav-link" data-page="donations">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <span>Bağışlar</span>
+            </a>
+
+            <a href="#" class="nav-link" data-page="beneficiaries">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>Yararlanıcılar</span>
+            </a>
+
+            <a href="#" class="nav-link" data-page="aid">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                </svg>
+                <span>Yardım Dağıtımı</span>
+            </a>
+
+            <a href="#" class="nav-link" data-page="staff">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="8.5" cy="7" r="4"></circle>
+                    <polyline points="17 11 19 13 23 9"></polyline>
+                </svg>
+                <span>Personel</span>
+            </a>
+
+            <a href="#" class="nav-link" data-page="sponsorship">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+                <span>Yetim Sponsorluğu</span>
+            </a>
+
+            <a href="#" class="nav-link" data-page="reports">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span>Raporlar</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">IH</div>
+                <div class="user-details">
+                    <p class="user-name">Ibrahim Sahud</p>
+                    <p class="user-role">Sistem Yöneticisi</p>
+                </div>
+            </div>
+            <div class="user-info" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div class="user-avatar">AK</div>
+                <div class="user-details">
+                    <p class="user-name">Ahmad Kassas</p>
+                    <p class="user-role">Sistem Yöneticisi</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    
+    <main class="main-content">
+        
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <h1 class="page-title">Kontrol Paneli</h1>
+            </div>
+            <div class="topbar-right">
+                <div class="search-box">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" placeholder="Ara..." id="searchInput">
+                </div>
+                <button class="notification-btn" onclick="toggleNotifications()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <span class="notification-badge">3</span>
+                </button>
+            </div>
+        </header>
+
+        
+        <div id="alert" class="alert" style="display: none;"></div>
+
+        
+        <div id="dashboard" class="page active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Toplam Bağışçı</p>
+                        <h3 class="stat-value" id="dashDonorsCount">0</h3>
+                        <span class="stat-change positive">Geçen aydan +12%</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Toplam Bağış</p>
+                        <h3 class="stat-value" id="dashDonationsCount">0</h3>
+                        <span class="stat-change positive">Geçen aydan +8%</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Toplam Yararlanıcı</p>
+                        <h3 class="stat-value" id="dashBeneficiariesCount">0</h3>
+                        <span class="stat-change positive">Geçen aydan +15%</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                            <polyline points="17 11 19 13 23 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Toplam Personel</p>
+                        <h3 class="stat-value" id="dashStaffCount">0</h3>
+                        <span class="stat-change neutral">Değişiklik yok</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cards-row">
+                <div class="card large">
+                    <div class="card-header">
+                        <h3>Son Aktiviteler</h3>
+                        <button class="btn-text">Tümünü Görüntüle</button>
+                    </div>
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tür</th>
+                                    <th>Detaylar</th>
+                                    <th>Tutar</th>
+                                    <th>Tarih</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentActivities">
+                                <tr>
+                                    <td><span class="badge badge-success">Bağış</span></td>
+                                    <td>Ahmet Yılmaz'dan bağış</td>
+                                    <td class="amount">5,000 ₺</td>
+                                    <td>15/10/2025</td>
+                                    <td><span class="status-dot success"></span> Tamamlandı</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-warning">Yardım</span></td>
+                                    <td>Gıda paketi dağıtımı</td>
+                                    <td class="amount">800 ₺</td>
+                                    <td>14/10/2025</td>
+                                    <td><span class="status-dot success"></span> Tamamlandı</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card small">
+                    <div class="card-header">
+                        <h3>Hızlı İstatistikler</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="quick-stats">
+                            <div class="quick-stat-item">
+                                <div class="quick-stat-label">Bugünkü Bağışlar</div>
+                                <div class="quick-stat-value">15</div>
+                            </div>
+                            <div class="quick-stat-item">
+                                <div class="quick-stat-label">Dağıtılan Yardımlar</div>
+                                <div class="quick-stat-value">42</div>
+                            </div>
+                            <div class="quick-stat-item">
+                                <div class="quick-stat-label">Aktif Sponsorluklar</div>
+                                <div class="quick-stat-value">128</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+        <div id="donors" class="page">
+            <div class="page-header">
+                <h2>Bağışçı Yönetimi</h2>
+                <button class="btn btn-primary" onclick="showAddForm('donor')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Bağışçı Ekle
+                </button>
+            </div>
+
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--primary-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Toplam Bağışçı</p>
+                        <h3 class="stat-value" id="donorsStatTotal">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--gray-600);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                            <polyline points="17 11 19 13 23 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Bireysel Bağışçı</p>
+                        <h3 class="stat-value" id="donorsStatIndividual">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--light-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Kurumsal Bağışçı</p>
+                        <h3 class="stat-value" id="donorsStatCorporate">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--dark-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Vakıf Bağışçı</p>
+                        <h3 class="stat-value" id="donorsStatFoundation">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>İsim</th>
+                                <th>Telefon</th>
+                                <th>E-posta</th>
+                                <th>Tür</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="donorsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        
+        <div id="donations" class="page">
+            <div class="page-header">
+                <h2>Bağış Yönetimi</h2>
+                <button class="btn btn-primary" onclick="showAddForm('donation')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Bağış Kaydet
+                </button>
+            </div>
+
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--primary-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Toplam Bağış</p>
+                        <h3 class="stat-value" id="donationsStatTotal">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--gray-600);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                            <line x1="1" y1="10" x2="23" y2="10"></line>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Toplam Tutar</p>
+                        <h3 class="stat-value" id="donationsStatAmount">0 TRY</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--light-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Nakit Bağış</p>
+                        <h3 class="stat-value" id="donationsStatCash">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--dark-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Aylık Bağış</p>
+                        <h3 class="stat-value" id="donationsStatMonthly">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Bağışçı</th>
+                                <th>Tutar</th>
+                                <th>Tür</th>
+                                <th>Tarih</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="donationsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        
+        <div id="beneficiaries" class="page">
+            <div class="page-header">
+                <h2>Yararlanıcı Yönetimi</h2>
+                <button class="btn btn-primary" onclick="showAddForm('beneficiary')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Yararlanıcı Ekle
+                </button>
+            </div>
+
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--primary-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Toplam Yararlanıcı</p>
+                        <h3 class="stat-value" id="beneficiariesStatTotal">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--gray-600);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="8" r="5"></circle>
+                            <path d="M20 21a8 8 0 1 0-16 0"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Yetim</p>
+                        <h3 class="stat-value" id="beneficiariesStatOrphan">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--light-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Dul Kadın</p>
+                        <h3 class="stat-value" id="beneficiariesStatWidow">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--dark-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Fakir</p>
+                        <h3 class="stat-value" id="beneficiariesStatPoor">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>İsim</th>
+                                <th>Tür</th>
+                                <th>Telefon</th>
+                                <th>Şehir</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="beneficiariesTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        
+        <div id="aid" class="page">
+            <div class="page-header">
+                <h2>Yardım Dağıtımı</h2>
+                <button class="btn btn-primary" onclick="showAddForm('aid')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Yardım Kaydet
+                </button>
+            </div>
+
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--primary-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Toplam Yardım</p>
+                        <h3 class="stat-value" id="aidStatTotal">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--gray-600);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Toplam Değer</p>
+                        <h3 class="stat-value" id="aidStatValue">0 TRY</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--light-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <path d="M16 10a4 4 0 0 1-8 0"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Gıda Yardımı</p>
+                        <h3 class="stat-value" id="aidStatFood">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--dark-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Eğitim Yardımı</p>
+                        <h3 class="stat-value" id="aidStatEducation">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Yararlanıcı</th>
+                                <th>Yardım Türü</th>
+                                <th>Değer</th>
+                                <th>Tarih</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="aidTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        
+        <div id="staff" class="page">
+            <div class="page-header">
+                <h2>Personel Yönetimi</h2>
+                <button class="btn btn-primary" onclick="showAddForm('staff')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Personel Ekle
+                </button>
+            </div>
+
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--primary-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Toplam Personel</p>
+                        <h3 class="stat-value" id="staffStatTotal">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--gray-600);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 7h16M4 12h16M4 17h16"></path>
+                            <path d="M8 7v10M16 7v10"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Bölüm Sayısı</p>
+                        <h3 class="stat-value" id="staffStatDepartments">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--light-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1v22"></path>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Ortalama Maaş</p>
+                        <h3 class="stat-value" id="staffStatAverageSalary">0 TRY</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--dark-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z"></path>
+                            <path d="M6 22v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Yönetim Kadrosu</p>
+                        <h3 class="stat-value" id="staffStatManagement">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>İsim</th>
+                                <th>Pozisyon</th>
+                                <th>Bölüm</th>
+                                <th>Maaş</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        
+        <div id="sponsorship" class="page">
+            <div class="page-header">
+                <h2>Yetim Sponsorluğu</h2>
+                <button class="btn btn-primary" onclick="showAddForm('sponsorship')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Sponsorluk Ekle
+                </button>
+            </div>
+
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--primary-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="7" r="4"></circle>
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Toplam Sponsorluk</p>
+                        <h3 class="stat-value" id="sponsorshipStatTotal">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--gray-600);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                            <path d="M22 11c0 4-4 7-10 7S2 15 2 11"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Aktif Sponsorluk</p>
+                        <h3 class="stat-value" id="sponsorshipStatActive">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--light-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Aylık Destek</p>
+                        <h3 class="stat-value" id="sponsorshipStatMonthlyAmount">0 TRY</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--dark-green);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1v22"></path>
+                            <path d="M5 8h9a4 4 0 0 1 0 8H5z"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Yetim Başına Ortalama</p>
+                        <h3 class="stat-value" id="sponsorshipStatAverage">0 TRY</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Sponsor</th>
+                                <th>Yetim</th>
+                                <th>Aylık Tutar</th>
+                                <th>Sıklık</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sponsorshipTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        
+        <div id="reports" class="page">
+            <div class="page-header">
+                <h2>Raporlar ve İstatistikler</h2>
+                <div class="report-filters">
+                    <select id="reportPeriod" class="filter-select" onchange="loadReportsData()">
+                        <option value="all">Tüm Dönemler</option>
+                        <option value="today">Bugün</option>
+                        <option value="week">Bu Hafta</option>
+                        <option value="month" selected>Bu Ay</option>
+                        <option value="year">Bu Yıl</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="exportReport()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; margin-left: 8px;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Raporu İndir
+                    </button>
+                </div>
+            </div>
+
+            
+            <div class="report-stats-grid">
+                <div class="report-stat-card green">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Toplam Bağış</p>
+                        <h3 class="stat-value" id="totalDonationsAmount">0 ₺</h3>
+                        <span class="stat-change positive">+12.5% geçen aydan</span>
+                    </div>
+                </div>
+
+                <div class="report-stat-card blue">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Bağışçı Sayısı</p>
+                        <h3 class="stat-value" id="reportDonorsCount">0</h3>
+                        <span class="stat-change positive">+8 yeni bağışçı</span>
+                    </div>
+                </div>
+
+                <div class="report-stat-card orange">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Yararlanıcı Sayısı</p>
+                        <h3 class="stat-value" id="reportBeneficiariesCount">0</h3>
+                        <span class="stat-change neutral">15 faydalanan aile</span>
+                    </div>
+                </div>
+
+                <div class="report-stat-card purple">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                        </svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Dağıtılan Yardımlar</p>
+                        <h3 class="stat-value" id="totalAidsCount">0</h3>
+                        <span class="stat-change positive">+24 yardım bu ay</span>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="report-charts-grid">
+                <div class="card chart-card">
+                    <div class="card-header">
+                        <h3>Aylık Bağışlar</h3>
+                        <span class="chart-subtitle">Son 6 Ay</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-placeholder" id="donationsChart">
+                            <div class="simple-chart">
+                                <div class="chart-bar" style="height: 45%;" data-value="45000"></div>
+                                <div class="chart-bar" style="height: 60%;" data-value="60000"></div>
+                                <div class="chart-bar" style="height: 38%;" data-value="38000"></div>
+                                <div class="chart-bar" style="height: 75%;" data-value="75000"></div>
+                                <div class="chart-bar" style="height: 55%;" data-value="55000"></div>
+                                <div class="chart-bar" style="height: 85%;" data-value="85000"></div>
+                            </div>
+                            <div class="chart-labels">
+                                <span>Temmuz</span>
+                                <span>Ağustos</span>
+                                <span>Eylül</span>
+                                <span>Ekim</span>
+                                <span>Kasım</span>
+                                <span>Aralık</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card chart-card">
+                    <div class="card-header">
+                        <h3>Türe Göre Bağış Dağılımı</h3>
+                        <span class="chart-subtitle">Yüzde</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="pie-chart-container" id="donationTypesChart">
+                            <div class="pie-chart-item">
+                                <div class="pie-legend" style="background-color: #2d8659;"></div>
+                                <span>Nakit</span>
+                                <strong>45%</strong>
+                            </div>
+                            <div class="pie-chart-item">
+                                <div class="pie-legend" style="background-color: #3b82f6;"></div>
+                                <span>Ayni</span>
+                                <strong>30%</strong>
+                            </div>
+                            <div class="pie-chart-item">
+                                <div class="pie-legend" style="background-color: #f97316;"></div>
+                                <span>Sponsorluk</span>
+                                <strong>25%</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="report-tables-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>En İyi Bağışçılar</h3>
+                        <span class="badge badge-success">Top 10</span>
+                    </div>
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>İsim</th>
+                                    <th>Bağış Sayısı</th>
+                                    <th>Toplam Tutar</th>
+                                    <th>Son Bağış</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topDonorsTable">
+                                <tr>
+                                    <td colspan="5" style="text-align:center; padding:40px; color: #999;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.3;">
+                                            <path d="M9 2v6h6V2M19 9h-5v5h5M6 9v5H1V9m7 7v6h6v-6"></path>
+                                        </svg>
+                                        <p>Veri yok</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Türe Göre Yardımlar</h3>
+                        <span class="badge badge-info">Detaylı</span>
+                    </div>
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Yardım Türü</th>
+                                    <th>Miktar</th>
+                                    <th>Toplam Değer</th>
+                                    <th>Yüzde</th>
+                                </tr>
+                            </thead>
+                            <tbody id="aidByTypeTable">
+                                <tr>
+                                    <td colspan="5" style="text-align:center; padding:40px; color: #999;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.3;">
+                                            <path d="M9 2v6h6V2M19 9h-5v5h5M6 9v5H1V9m7 7v6h6v-6"></path>
+                                        </svg>
+                                        <p>Veri yok</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="report-insights">
+                <div class="card insight-card">
+                    <div class="card-header">
+                        <h3>Performans Özeti</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="insight-item">
+                            <div class="insight-label">Ortalama Aylık Bağış</div>
+                            <div class="insight-value">58,500 ₺</div>
+                        </div>
+                        <div class="insight-item">
+                            <div class="insight-label">Yararlanıcı Aile Sayısı</div>
+                            <div class="insight-value">127 aile</div>
+                        </div>
+                        <div class="insight-item">
+                            <div class="insight-label">Yıllık Büyüme Oranı</div>
+                            <div class="insight-value text-success">+18.5%</div>
+                        </div>
+                        <div class="insight-item">
+                            <div class="insight-label">Sponsor Olunan Yetimler</div>
+                            <div class="insight-value">84 yetim</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Yeni Bağışçı Ekle</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                
+            </div>
+        </div>
+    </div>
+
+    
+    <div id="notificationPanel" class="notification-panel">
+        <div class="notification-header">
+            <h3 id="notificationTitle">Bildirimler</h3>
+            <button class="mark-all-read" onclick="markAllAsRead()" id="markAllReadBtn">Tümünü Okundu İşaretle</button>
+        </div>
+        <div class="notification-list" id="notificationList">
+            
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

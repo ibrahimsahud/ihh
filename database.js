@@ -3,16 +3,15 @@
 const sql = require('mssql');
 
 const config = {
-    user: 'ahmet',
-    password: '',
-    server: 'AHMET\\SQLEXPRESS03',
+    user: 'ihhuser',
+    password: 'IHH@2025',
+    server: 'IBOO',
     database: 'IHH_Hayir',
     options: {
-        encrypt: false,
+        encrypt: true,
         trustServerCertificate: true,
         enableArithAbort: true
     },
-    port: 1433,
     connectionTimeout: 30000,
     requestTimeout: 30000
 };
@@ -20,10 +19,10 @@ const config = {
 async function connectToDatabase() {
     try {
         const pool = await sql.connect(config);
-        console.log('✓ تم الاتصال بقاعدة البيانات بنجاح');
+        console.log('✓ Veritabani baglantisi basarili');
         return pool;
     } catch (err) {
-        console.error('✗ خطأ في الاتصال بقاعدة البيانات:', err.message);
+        console.error('✗ Veritabani baglantisi hatasi:', err.message);
         throw err;
     }
 }
@@ -52,7 +51,7 @@ async function getAllDonors() {
             `);
         return result.recordset;
     } catch (err) {
-        console.error('خطأ في جلب المتبرعين:', err);
+        console.error('Bagisci listeleme hatasi:', err);
         throw err;
     }
 }
@@ -83,7 +82,7 @@ async function addDonor(donor) {
             `);
         return result.recordset[0].id;
     } catch (err) {
-        console.error('خطأ في إضافة المتبرع:', err);
+        console.error('Bagisci ekleme hatasi:', err);
         throw err;
     }
 }
@@ -117,7 +116,7 @@ async function updateDonor(id, donor) {
             `);
         return true;
     } catch (err) {
-        console.error('خطأ في تحديث المتبرع:', err);
+        console.error('Bagisci guncelleme hatasi:', err);
         throw err;
     }
 }
@@ -135,7 +134,7 @@ async function deleteDonor(id) {
             `);
         return true;
     } catch (err) {
-        console.error('خطأ في حذف المتبرع:', err);
+        console.error('Bagisci silme hatasi:', err);
         throw err;
     }
 }
@@ -166,7 +165,7 @@ async function getAllDonations() {
             `);
         return result.recordset;
     } catch (err) {
-        console.error('خطأ في جلب التبرعات:', err);
+        console.error('Bagis listeleme hatasi:', err);
         throw err;
     }
 }
@@ -197,7 +196,7 @@ async function addDonation(donation) {
             `);
         return result.recordset[0].id;
     } catch (err) {
-        console.error('خطأ في إضافة التبرع:', err);
+        console.error('Bagis ekleme hatasi:', err);
         throw err;
     }
 }
@@ -230,7 +229,7 @@ async function getAllBeneficiaries() {
             `);
         return result.recordset;
     } catch (err) {
-        console.error('خطأ في جلب المستفيدين:', err);
+        console.error('Faydalanici listeleme hatasi:', err);
         throw err;
     }
 }
@@ -266,7 +265,7 @@ async function addBeneficiary(beneficiary) {
             `);
         return result.recordset[0].id;
     } catch (err) {
-        console.error('خطأ في إضافة المستفيد:', err);
+        console.error('Faydalanici ekleme hatasi:', err);
         throw err;
     }
 }
@@ -297,7 +296,7 @@ async function getAllStaff() {
             `);
         return result.recordset;
     } catch (err) {
-        console.error('خطأ في جلب الموظفين:', err);
+        console.error('Personel listeleme hatasi:', err);
         throw err;
     }
 }
@@ -331,7 +330,7 @@ async function addStaff(staff) {
             `);
         return result.recordset[0].id;
     } catch (err) {
-        console.error('خطأ في إضافة الموظف:', err);
+        console.error('Personel ekleme hatasi:', err);
         throw err;
     }
 }
@@ -354,7 +353,7 @@ async function getDashboardStats() {
             `);
         return result.recordset[0];
     } catch (err) {
-        console.error('خطأ في جلب الإحصائيات:', err);
+        console.error('Istatistik sorgu hatasi:', err);
         throw err;
     }
 }
@@ -382,7 +381,7 @@ async function getTopDonors(limit = 10) {
             `);
         return result.recordset;
     } catch (err) {
-        console.error('خطأ في جلب أهم المتبرعين:', err);
+        console.error('En cok bagisci sorgu hatasi:', err);
         throw err;
     }
 }
@@ -391,11 +390,11 @@ async function getTopDonors(limit = 10) {
 async function testConnection() {
     try {
         const pool = await connectToDatabase();
-        console.log('✓ الاتصال بقاعدة البيانات يعمل بشكل صحيح');
+        console.log('✓ Veritabani baglantisi sorunsuz calisiyor');
         await pool.close();
         return true;
     } catch (err) {
-        console.error('✗ فشل الاتصال بقاعدة البيانات:', err.message);
+        console.error('✗ Veritabani baglantisi basarisiz:', err.message);
         return false;
     }
 }
@@ -423,254 +422,3 @@ module.exports = {
     getTopDonors
 };
 
-async function connectToDatabase() {
-    try {
-        const pool = await sql.connect(config);
-        console.log('✓ تم الاتصال بقاعدة البيانات بنجاح');
-        return pool;
-    } catch (err) {
-        console.error('✗ خطأ في الاتصال بقاعدة البيانات:', err);
-        throw err;
-    }
-}
-
-
-
-async function getAllDonors() {
-    try {
-        const pool = await connectToDatabase();
-        const result = await pool.request()
-            .query(`
-                SELECT 
-                    DonorID as id,
-                    FirstName as firstName,
-                    LastName as lastName,
-                    PhoneNumber as phone,
-                    Email as email,
-                    City as city,
-                    DonorType as type,
-                    FORMAT(RegistrationDate, 'dd/MM/yyyy') as date
-                FROM Donors
-                WHERE IsActive = 1
-                ORDER BY RegistrationDate DESC
-            `);
-        return result.recordset;
-    } catch (err) {
-        console.error('خطأ في جلب المتبرعين:', err);
-        throw err;
-    }
-}
-
-
-async function addDonor(donor) {
-    try {
-        const pool = await connectToDatabase();
-        const result = await pool.request()
-            .input('firstName', sql.NVarChar(50), donor.firstName)
-            .input('lastName', sql.NVarChar(50), donor.lastName)
-            .input('phone', sql.NVarChar(20), donor.phone)
-            .input('email', sql.NVarChar(100), donor.email)
-            .input('city', sql.NVarChar(50), donor.city)
-            .input('type', sql.NVarChar(20), donor.type)
-            .query(`
-                INSERT INTO Donors (FirstName, LastName, PhoneNumber, Email, City, DonorType)
-                VALUES (@firstName, @lastName, @phone, @email, @city, @type);
-                SELECT SCOPE_IDENTITY() AS id;
-            `);
-        return result.recordset[0].id;
-    } catch (err) {
-        console.error('خطأ في إضافة المتبرع:', err);
-        throw err;
-    }
-}
-
-
-async function updateDonor(id, donor) {
-    try {
-        const pool = await connectToDatabase();
-        await pool.request()
-            .input('id', sql.Int, id)
-            .input('firstName', sql.NVarChar(50), donor.firstName)
-            .input('lastName', sql.NVarChar(50), donor.lastName)
-            .input('phone', sql.NVarChar(20), donor.phone)
-            .input('email', sql.NVarChar(100), donor.email)
-            .input('city', sql.NVarChar(50), donor.city)
-            .input('type', sql.NVarChar(20), donor.type)
-            .query(`
-                UPDATE Donors
-                SET 
-                    FirstName = @firstName,
-                    LastName = @lastName,
-                    PhoneNumber = @phone,
-                    Email = @email,
-                    City = @city,
-                    DonorType = @type
-                WHERE DonorID = @id
-            `);
-        return true;
-    } catch (err) {
-        console.error('خطأ في تحديث المتبرع:', err);
-        throw err;
-    }
-}
-
-
-async function deleteDonor(id) {
-    try {
-        const pool = await connectToDatabase();
-        await pool.request()
-            .input('id', sql.Int, id)
-            .query(`
-                UPDATE Donors
-                SET IsActive = 0
-                WHERE DonorID = @id
-            `);
-        return true;
-    } catch (err) {
-        console.error('خطأ في حذف المتبرع:', err);
-        throw err;
-    }
-}
-
-
-
-async function getAllDonations() {
-    try {
-        const pool = await connectToDatabase();
-        const result = await pool.request()
-            .query(`
-                SELECT 
-                    d.DonationID as id,
-                    d.DonorID as donorId,
-                    donor.FirstName + ' ' + donor.LastName as donorName,
-                    d.DonationAmount as amount,
-                    d.DonationType as type,
-                    d.PaymentMethod as paymentMethod,
-                    d.Notes as notes,
-                    FORMAT(d.DonationDate, 'dd/MM/yyyy') as date
-                FROM Donations d
-                INNER JOIN Donors donor ON d.DonorID = donor.DonorID
-                ORDER BY d.DonationDate DESC
-            `);
-        return result.recordset;
-    } catch (err) {
-        console.error('خطأ في جلب التبرعات:', err);
-        throw err;
-    }
-}
-
-
-async function addDonation(donation) {
-    try {
-        const pool = await connectToDatabase();
-        const result = await pool.request()
-            .input('donorId', sql.Int, donation.donorId)
-            .input('branchId', sql.Int, 1)
-            .input('amount', sql.Decimal(18, 2), donation.amount)
-            .input('type', sql.NVarChar(20), donation.type)
-            .input('paymentMethod', sql.NVarChar(20), donation.paymentMethod)
-            .input('notes', sql.NVarChar(500), donation.notes)
-            .query(`
-                INSERT INTO Donations (DonorID, BranchID, DonationAmount, DonationType, PaymentMethod, Notes)
-                VALUES (@donorId, @branchId, @amount, @type, @paymentMethod, @notes);
-                SELECT SCOPE_IDENTITY() AS id;
-            `);
-        return result.recordset[0].id;
-    } catch (err) {
-        console.error('خطأ في إضافة التبرع:', err);
-        throw err;
-    }
-}
-
-
-
-async function getAllBeneficiaries() {
-    try {
-        const pool = await connectToDatabase();
-        const result = await pool.request()
-            .query(`
-                SELECT 
-                    BeneficiaryID as id,
-                    FirstName as firstName,
-                    LastName as lastName,
-                    BeneficiaryType as type,
-                    PhoneNumber as phone,
-                    City as city,
-                    FamilySize as familySize,
-                    FORMAT(RegistrationDate, 'dd/MM/yyyy') as date
-                FROM Beneficiaries
-                WHERE IsActive = 1
-                ORDER BY RegistrationDate DESC
-            `);
-        return result.recordset;
-    } catch (err) {
-        console.error('خطأ في جلب المستفيدين:', err);
-        throw err;
-    }
-}
-
-
-
-async function getDashboardStats() {
-    try {
-        const pool = await connectToDatabase();
-        const result = await pool.request()
-            .query(`
-                SELECT 
-                    (SELECT COUNT(*) FROM Donors WHERE IsActive = 1) as totalDonors,
-                    (SELECT COUNT(*) FROM Donations) as totalDonations,
-                    (SELECT COUNT(*) FROM Beneficiaries WHERE IsActive = 1) as totalBeneficiaries,
-                    (SELECT COUNT(*) FROM Staff WHERE IsActive = 1) as totalStaff,
-                    (SELECT ISNULL(SUM(DonationAmount), 0) FROM Donations) as totalDonationAmount,
-                    (SELECT COUNT(*) FROM AidDistribution) as totalAidDistributions
-            `);
-        return result.recordset[0];
-    } catch (err) {
-        console.error('خطأ في جلب الإحصائيات:', err);
-        throw err;
-    }
-}
-
-
-async function getTopDonors(limit = 10) {
-    try {
-        const pool = await connectToDatabase();
-        const result = await pool.request()
-            .input('limit', sql.Int, limit)
-            .query(`
-                SELECT TOP (@limit)
-                    d.FirstName + ' ' + d.LastName as donorName,
-                    COUNT(dn.DonationID) as donationCount,
-                    SUM(dn.DonationAmount) as totalAmount
-                FROM Donors d
-                INNER JOIN Donations dn ON d.DonorID = dn.DonorID
-                GROUP BY d.DonorID, d.FirstName, d.LastName
-                ORDER BY totalAmount DESC
-            `);
-        return result.recordset;
-    } catch (err) {
-        console.error('خطأ في جلب أهم المتبرعين:', err);
-        throw err;
-    }
-}
-
-
-module.exports = {
-    connectToDatabase,
-    
-    getAllDonors,
-    addDonor,
-    updateDonor,
-    deleteDonor,
-    
-    getAllDonations,
-    addDonation,
-    
-    getAllBeneficiaries,
-    
-    getDashboardStats,
-    getTopDonors
-};
-
-
-  

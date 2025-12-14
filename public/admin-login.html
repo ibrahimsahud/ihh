@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="tr" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IHH Yönetim Girişi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+    <div class="login-shell">
+        <div class="login-card">
+            <div class="login-card__header">
+                <div class="login-brand">
+                    <div class="brand-mark">IHH</div>
+                    <div>
+                        <p class="brand-prompt">Yönetim Paneli</p>
+                        <h1>Yönetici Girişi</h1>
+                    </div>
+                </div>
+                <p class="login-subtext">Yetkili kullanıcılar için doğrulama ekranı.</p>
+            </div>
+
+            <form class="login-form" id="adminLoginForm">
+                <label class="login-field">
+                    <span>Kullanıcı Adı</span>
+                    <input type="text" name="username" placeholder="admin" autocomplete="username" required>
+                </label>
+
+                <label class="login-field">
+                    <span>Parola</span>
+                    <div class="password-field">
+                        <input type="password" name="password" placeholder="••••••••" autocomplete="current-password" required minlength="8">
+                        <button class="toggle-password" type="button" aria-label="Parolayı göster">Göster</button>
+                    </div>
+                </label>
+
+                <div class="login-form__meta">
+                    <label class="remember">
+                        <input type="checkbox" name="remember" checked>
+                        <span>Beni hatırla</span>
+                    </label>
+                </div>
+
+                <p class="login-error" id="loginError" role="alert"></p>
+
+                <button type="submit" class="btn-login">Panele Giriş Yap</button>
+            </form>
+        </div>
+
+        <div class="login-visual" aria-hidden="true">
+            <div class="visual-overlay"></div>
+            <img src="images/login%20ui.jpg" alt="IHH bağış yönetimi illüstrasyonu">
+        </div>
+    </div>
+
+    <script>
+        const AUTH_FLAG_KEY = 'ihhAdminAuthed';
+        const EXPECTED_USERNAME = 'admin';
+        const EXPECTED_PASSWORD = 'Ihh2025@Admin';
+        const loginForm = document.getElementById('adminLoginForm');
+        const togglePasswordBtn = document.querySelector('.toggle-password');
+        const passwordInput = document.querySelector('input[name="password"]');
+        const passwordWrapper = document.querySelector('.password-field');
+        const usernameInput = document.querySelector('input[name="username"]');
+        const loginError = document.getElementById('loginError');
+
+        togglePasswordBtn.addEventListener('click', () => {
+            const nextType = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = nextType;
+            togglePasswordBtn.textContent = nextType === 'password' ? 'Göster' : 'Gizle';
+        });
+
+        function persistSession(rememberMe) {
+            const tokenValue = String(Date.now());
+            if (rememberMe) {
+                localStorage.setItem(AUTH_FLAG_KEY, tokenValue);
+                sessionStorage.removeItem(AUTH_FLAG_KEY);
+            } else {
+                sessionStorage.setItem(AUTH_FLAG_KEY, tokenValue);
+                localStorage.removeItem(AUTH_FLAG_KEY);
+            }
+        }
+
+        function showError(message) {
+            if (!message) {
+                loginError.textContent = '';
+                loginError.classList.remove('visible');
+                return;
+            }
+            loginError.textContent = message;
+            loginError.classList.add('visible');
+        }
+
+        loginForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const formData = new FormData(loginForm);
+            const username = formData.get('username').trim();
+            const password = formData.get('password');
+            const remember = formData.get('remember') === 'on';
+
+            if (username !== EXPECTED_USERNAME || password !== EXPECTED_PASSWORD) {
+                showError('Kullanıcı adı veya parola hatalı. Lütfen tekrar deneyin.');
+                passwordWrapper.classList.add('shake');
+                setTimeout(() => passwordWrapper.classList.remove('shake'), 400);
+                return;
+            }
+
+            showError('');
+            persistSession(remember);
+            loginForm.classList.add('is-authenticating');
+            usernameInput.setAttribute('disabled', 'disabled');
+            passwordInput.setAttribute('disabled', 'disabled');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 300);
+        });
+    </script>
+</body>
+</html>

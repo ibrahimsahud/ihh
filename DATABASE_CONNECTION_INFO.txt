@@ -1,0 +1,80 @@
+===========================================================
+      IHH sistemi veritabani baglanti bilgileri
+===========================================================
+
+Guncelleme tarihi: 2025-12-01
+
+-----------------------------------------------------------
+Guncel ayarlar
+-----------------------------------------------------------
+
+- Sunucu (Server Name):            IBOO
+- Kullanici (User Name):           IBOO\iboo
+- Veritabani (Database):           IHH_Hayir
+- Kimlik dogrulama:                Windows Authentication
+- Port:                            1433
+- Encrypt:                         false
+- Trust Server Certificate:        true
+
+-----------------------------------------------------------
+Guncellenen dosyalar
+-----------------------------------------------------------
+
+1) database.js (satir 5-18)
+  - Baglanti bilgileri guncellendi.
+
+2) server.js (satir 16-31)
+  - Baglanti ayarlari ve konsol mesajlari yenilendi.
+
+3) test-connection.js
+  - Veritabani baglantisini dogrulayan betik.
+  - SQL Server surum bilgisini raporlar.
+
+4) README.md
+  - Kurulum ve cozum adimlari.
+  - Ozellik ve destek bilgileri.
+
+-----------------------------------------------------------
+Calistirma adimlari
+-----------------------------------------------------------
+
+1) SQL Server servisinin calistigini dogrulayin.
+2) IHH_Hayir veritabaninin mevcut oldugundan emin olun.
+3) Baglanti testini calistirin:  npm test
+4) Uygulamayi baslatin:         npm start
+  Gelistirme icin:             npm run dev
+5) Tarayicida http://localhost:3000 adresini acin.
+
+-----------------------------------------------------------
+Onemli notlar
+-----------------------------------------------------------
+
+- Farkli bir sunucu adi veya instance (ornegin IBOO\SQLEXPRESS)
+  kullaniyorsaniz database.js ve server.js dosyalarini guncelleyin.
+- TCP/IP protokolunun SQL Server Configuration Manager uzerinden
+  etkin oldugundan emin olun.
+- IBOO\iboo kullanicisina IHH_Hayir veritabaninda yeterli yetki verin.
+- SQL Server Authentication kullanacaksaniz `user` ve `password`
+  alanlarini doldurun ve sunucu adindaki \\ kismini gerekirse duzenleyin.
+
+-----------------------------------------------------------
+Sorun giderme
+-----------------------------------------------------------
+
+Hata: "ConnectionError: Failed to connect to IBOO"
+- SQL Server servis durumu Running mi?
+- SSMS uzerinden dogru sunucu adini kullanin.
+- TCP/IP etkinken tekrar deneyin.
+- Servisi yeniden baslatin.
+
+Hata: "Login failed for user 'IBOO\\iboo'"
+- Kullanici yetkilerini kontrol edin.
+- Veritabanina kullaniciyi ekleyip db_owner yetkisi verin.
+
+Hata: "Cannot open database 'IHH_Hayir'"
+- `database-schema.sql` dosyasini calistirarak veritabani olusturun.
+- SSMS uzerinde adin dogru yazildigini dogrulayin.
+
+-----------------------------------------------------------
+Ek bilgi icin README.md dosyasina bakabilirsiniz.
+===========================================================

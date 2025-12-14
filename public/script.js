@@ -1,37 +1,24 @@
-let donors = [
-    { id: 1, firstName: 'Ahmet', lastName: 'Yılmaz', phone: '+90 555 123 4567', email: 'ahmet@example.com', city: 'İstanbul', type: 'Individual', date: '15/01/2024' },
-    { id: 2, firstName: 'Mehmet', lastName: 'Demir', phone: '+90 555 234 5678', email: 'mehmet@example.com', city: 'Ankara', type: 'Individual', date: '20/01/2024' },
-    { id: 3, firstName: 'Ayşe', lastName: 'Kaya', phone: '+90 555 345 6789', email: 'ayse@example.com', city: 'İzmir', type: 'Individual', date: '25/01/2024' },
-    { id: 4, firstName: 'ABC', lastName: 'Şirketi', phone: '+90 555 111 2222', email: 'info@abc.com', city: 'İstanbul', type: 'Corporate', date: '10/01/2024' },
-    { id: 5, firstName: 'Hayır', lastName: 'Vakfı', phone: '+90 555 333 4444', email: 'contact@hayir.org', city: 'Ankara', type: 'Foundation', date: '05/01/2024' }
-];
-let donations = [
-    { id: 1, donorId: 1, donorName: 'Ahmet Yılmaz', amount: 5000, currency: 'TRY', type: 'Cash', date: '15/01/2024' },
-    { id: 2, donorId: 2, donorName: 'Mehmet Demir', amount: 3000, currency: 'TRY', type: 'Monthly', date: '20/01/2024' },
-    { id: 3, donorId: 3, donorName: 'Ayşe Kaya', amount: 2000, currency: 'TRY', type: 'Cash', date: '25/01/2024' }
-];
-let beneficiaries = [
-    { id: 1, firstName: 'Fatma', lastName: 'Öz', phone: '+90 555 111 2222', city: 'İstanbul', type: 'Widow', familySize: 4, date: '10/01/2024' },
-    { id: 2, firstName: 'Ali', lastName: 'Şen', phone: '+90 555 222 3333', city: 'Ankara', type: 'Orphan', familySize: 1, date: '12/01/2024' },
-    { id: 3, firstName: 'Zeynep', lastName: 'Aydın', phone: '+90 555 333 4444', city: 'İzmir', type: 'Poor', familySize: 5, date: '15/01/2024' }
-];
-let aids = [
-    { id: 1, beneficiaryId: 1, beneficiaryName: 'Fatma Öz', type: 'Food', quantity: 10, value: 1000, date: '16/01/2024' },
-    { id: 2, beneficiaryId: 2, beneficiaryName: 'Ali Şen', type: 'Clothing', quantity: 5, value: 500, date: '18/01/2024' },
-    { id: 3, beneficiaryId: 3, beneficiaryName: 'Zeynep Aydın', type: 'Education', quantity: 1, value: 2000, date: '20/01/2024' }
-];
-let staff = [
-    { id: 1, firstName: 'Hasan', lastName: 'Çelik', phone: '+90 555 444 5555', email: 'hasan@ihh.org', position: 'Müdür', department: 'Yönetim', salary: 15000, hireDate: '01/01/2020' },
-    { id: 2, firstName: 'Elif', lastName: 'Yıldız', phone: '+90 555 555 6666', email: 'elif@ihh.org', position: 'Koordinatör', department: 'Yardım', salary: 12000, hireDate: '01/03/2021' },
-    { id: 3, firstName: 'Murat', lastName: 'Aksoy', phone: '+90 555 666 7777', email: 'murat@ihh.org', position: 'Muhasebeci', department: 'Finans', salary: 10000, hireDate: '01/06/2022' }
-];
-let sponsorships = [
-    { id: 1, orphanId: 2, orphanName: 'Ali Şen', sponsorId: 1, sponsorName: 'Ahmet Yılmaz', monthlyAmount: 500, frequency: 'Monthly', status: 'Active', startDate: '01/01/2024' },
-    { id: 2, orphanId: 4, orphanName: 'Zehra Demir', sponsorId: 2, sponsorName: 'Mehmet Demir', monthlyAmount: 600, frequency: 'Monthly', status: 'Active', startDate: '01/02/2024' }
-];
+let donors = [];
+let donations = [];
+let beneficiaries = [];
+let aids = [];
+let staff = [];
+let sponsorships = [];
 let notifications = [];
 
 const API_BASE_URL = 'http://localhost:3000/api';
+
+const AUTH_FLAG_KEY = 'ihhAdminAuthed';
+
+(function enforceDashboardAccess() {
+    if (typeof window === 'undefined') {
+        return;
+    }
+    const hasAccess = window.localStorage.getItem(AUTH_FLAG_KEY) || window.sessionStorage.getItem(AUTH_FLAG_KEY);
+    if (!hasAccess) {
+        window.location.href = 'admin-login.html';
+    }
+})();
 
 let currentLanguage = 'tr';
 
@@ -186,6 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     setupNavigation();
     setupMobileMenu();
+    setupQuickActions();
 
     updateDonorsTable();
     updateDonationsTable();
@@ -227,6 +215,278 @@ function setupMobileMenu() {
             sidebar.classList.toggle('active');
         });
     }
+}
+
+function setupQuickActions() {
+    const mainContent = document.querySelector('.main-content');
+    if (!mainContent) {
+        return;
+    }
+
+    mainContent.addEventListener('click', function(event) {
+        const button = event.target.closest('.quick-action-btn');
+        if (!button) {
+            return;
+        }
+        event.preventDefault();
+        handleQuickAction(button);
+    });
+}
+
+async function handleQuickAction(button) {
+    const section = button.getAttribute('data-section');
+    const action = button.getAttribute('data-action');
+
+    if (!section || !action || button.classList.contains('is-busy')) {
+        return;
+    }
+
+    button.classList.add('is-busy');
+
+    try {
+        if (action === 'refresh') {
+            await refreshSectionData(section);
+        } else if (action === 'export') {
+            exportSectionData(section);
+        } else if (action === 'add') {
+            triggerQuickAdd(section);
+        }
+    } catch (error) {
+        console.error('Hızlı işlem hatası:', error);
+        showAlert('Hızlı işlem tamamlanamadı', 'error');
+    } finally {
+        const timeout = action === 'refresh' ? 800 : 250;
+        setTimeout(() => button.classList.remove('is-busy'), timeout);
+    }
+}
+
+async function refreshSectionData(section) {
+    const config = getSectionActionConfig(section);
+    if (!config || typeof config.loader !== 'function') {
+        return;
+    }
+
+    try {
+        await config.loader();
+        if (config.refreshMessage) {
+            showAlert(config.refreshMessage);
+        }
+    } catch (error) {
+        console.error(`${section} verileri yenilenemedi:`, error);
+        showAlert('Veriler yenilenemedi', 'error');
+    }
+}
+
+function exportSectionData(section) {
+    const config = getSectionActionConfig(section);
+    if (!config || typeof config.exporter !== 'function') {
+        showAlert('Bu bölüm için dışa aktarım tanımlı değil', 'error');
+        return;
+    }
+
+    const success = config.exporter();
+    if (!success) {
+        showAlert('Dışa aktarılacak kayıt bulunamadı', 'error');
+        return;
+    }
+
+    if (config.exportMessage) {
+        showAlert(config.exportMessage);
+    }
+}
+
+function triggerQuickAdd(section) {
+    const config = getSectionActionConfig(section);
+    if (config && typeof config.add === 'function') {
+        config.add();
+    }
+}
+
+function getSectionActionConfig(section) {
+    const configs = {
+        donors: {
+            loader: loadDonors,
+            add: () => showAddForm('donor'),
+            refreshMessage: 'Bağışçı listesi yenilendi',
+            exportMessage: 'Bağışçı listesi CSV olarak indirildi',
+            exporter: () => exportEntitiesToCsv(
+                'bagiscilar',
+                donors,
+                ['ID', 'İsim', 'Telefon', 'E-posta', 'Tür'],
+                donor => {
+                    const first = donor.firstName || donor.FirstName || '';
+                    const last = donor.lastName || donor.LastName || '';
+                    const type = donor.type || donor.Type || '';
+                    return [
+                        donor.id ?? donor.DonorID ?? '',
+                        `${first} ${last}`.trim(),
+                        donor.phone || donor.PhoneNumber || '-',
+                        donor.email || donor.Email || '-',
+                        type
+                    ];
+                }
+            )
+        },
+        donations: {
+            loader: loadDonations,
+            add: () => showAddForm('donation'),
+            refreshMessage: 'Bağış kaydı güncellendi',
+            exportMessage: 'Bağış listesi CSV olarak indirildi',
+            exporter: () => exportEntitiesToCsv(
+                'bagislar',
+                donations,
+                ['ID', 'Bağışçı', 'Tutar', 'Yöntem', 'Tarih'],
+                donation => {
+                    const amount = Number(donation.amount ?? donation.DonationAmount ?? 0) || 0;
+                    const currency = donation.currency || donation.DonationCurrency || 'TRY';
+                    return [
+                        donation.id ?? donation.DonationID ?? '',
+                        donation.donorName || donation.DonorName || '-',
+                        `${amount} ${currency}`.trim(),
+                        donation.paymentMethod || donation.PaymentMethod || donation.type || donation.DonationType || '-',
+                        donation.date || donation.DonationDate || ''
+                    ];
+                }
+            )
+        },
+        beneficiaries: {
+            loader: loadBeneficiaries,
+            add: () => showAddForm('beneficiary'),
+            refreshMessage: 'Yararlanıcı listesi yenilendi',
+            exportMessage: 'Yararlanıcı listesi CSV olarak indirildi',
+            exporter: () => exportEntitiesToCsv(
+                'yararlanicilar',
+                beneficiaries,
+                ['ID', 'İsim', 'Tür', 'Şehir', 'Telefon'],
+                beneficiary => {
+                    const first = beneficiary.firstName || beneficiary.FirstName || '';
+                    const last = beneficiary.lastName || beneficiary.LastName || '';
+                    const type = beneficiary.type || beneficiary.BeneficiaryType || '-';
+                    return [
+                        beneficiary.id ?? beneficiary.BeneficiaryID ?? '',
+                        `${first} ${last}`.trim(),
+                        type,
+                        beneficiary.city || beneficiary.City || '-',
+                        beneficiary.phone || beneficiary.PhoneNumber || '-'
+                    ];
+                }
+            )
+        },
+        aid: {
+            loader: loadAidDistributions,
+            add: () => showAddForm('aid'),
+            refreshMessage: 'Yardım dağıtımları yenilendi',
+            exportMessage: 'Yardım listesi CSV olarak indirildi',
+            exporter: () => exportEntitiesToCsv(
+                'yardimlar',
+                aids,
+                ['ID', 'Yararlanıcı', 'Yardım Türü', 'Değer', 'Tarih'],
+                aid => {
+                    const estimatedValue = Number(aid.estimatedValue ?? aid.EstimatedValue ?? 0) || 0;
+                    return [
+                        aid.id ?? aid.AidDistributionID ?? '',
+                        aid.beneficiaryName || aid.BeneficiaryName || '-',
+                        aid.aidType || aid.AidTypeName || '-',
+                        estimatedValue,
+                        aid.date || aid.DistributionDate || ''
+                    ];
+                }
+            )
+        },
+        staff: {
+            loader: loadStaff,
+            add: () => showAddForm('staff'),
+            refreshMessage: 'Personel listesi yenilendi',
+            exportMessage: 'Personel listesi CSV olarak indirildi',
+            exporter: () => exportEntitiesToCsv(
+                'personel',
+                staff,
+                ['ID', 'İsim', 'Pozisyon', 'Bölüm', 'Maaş'],
+                employee => {
+                    const first = employee.firstName || employee.FirstName || '';
+                    const last = employee.lastName || employee.LastName || '';
+                    return [
+                        employee.id ?? employee.EmployeeID ?? '',
+                        `${first} ${last}`.trim(),
+                        employee.position || employee.Position || '-',
+                        employee.department || employee.Department || '-',
+                        employee.salary ?? employee.Salary ?? '-'
+                    ];
+                }
+            )
+        },
+        sponsorship: {
+            loader: loadSponsorships,
+            add: () => showAddForm('sponsorship'),
+            refreshMessage: 'Sponsorluk akışı yenilendi',
+            exportMessage: 'Sponsorluk listesi CSV olarak indirildi',
+            exporter: () => exportEntitiesToCsv(
+                'sponsorluklar',
+                sponsorships,
+                ['ID', 'Sponsor', 'Yetim', 'Aylık Tutar', 'Durum'],
+                record => {
+                    const amount = Number(record.monthlyAmount ?? record.MonthlyAmount ?? 0) || 0;
+                    const active = isSponsorshipActive(record) ? 'Aktif' : 'Pasif';
+                    return [
+                        record.id ?? record.SponsorshipID ?? '',
+                        record.donorName || record.DonorName || '-',
+                        record.orphanName || record.BeneficiaryName || '-',
+                        amount,
+                        active
+                    ];
+                }
+            )
+        },
+        reports: {
+            loader: loadReports,
+            refreshMessage: 'Rapor verileri yenilendi',
+            exportMessage: 'Rapor verileri CSV olarak indirildi',
+            exporter: () => exportReport({ silent: true })
+        }
+    };
+
+    return configs[section];
+}
+
+function exportEntitiesToCsv(filenamePrefix, source, headers, mapRow) {
+    if (!Array.isArray(source) || source.length === 0) {
+        return false;
+    }
+
+    const rows = [headers, ...source.map(item => mapRow(item))];
+    const csvContent = rows
+        .map(row => row.map(sanitizeCsvValue).join(','))
+        .join('\n');
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    downloadCsv(csvContent, `${filenamePrefix}_${timestamp}.csv`);
+    return true;
+}
+
+function sanitizeCsvValue(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    const stringValue = value.toString().replace(/"/g, '""');
+    if (/[",\n]/.test(stringValue)) {
+        return `"${stringValue}"`;
+    }
+    return stringValue;
+}
+
+function downloadCsv(content, filename) {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 function updatePageTitle(pageName) {
@@ -425,6 +685,7 @@ async function addDonor(event) {
             closeModal();
             loadDonors();
             loadDashboardStats();
+            refreshNotificationsAfterChange();
         } else {
         }
     } catch (error) {
@@ -520,6 +781,7 @@ async function updateDonor(event, id) {
             showAlert('Güncellendi bağışçı başarıyla');
             closeModal();
             loadDonors();
+            refreshNotificationsAfterChange();
         } else {
         }
     } catch (error) {
@@ -530,7 +792,7 @@ async function updateDonor(event, id) {
 }
 
 async function deleteDonor(id) {
-    if (!confirm('Bu kaydı silmek istediğinizden emin misiniz? bağışçı؟')) return;
+    if (!confirm('Bu bağışçıyı silmek istediğinize emin misiniz?')) return;
 
     try {
         const response = await fetch(`${API_BASE_URL}/donors/${id}`, {
@@ -543,6 +805,7 @@ async function deleteDonor(id) {
             showAlert('Silindi bağışçı başarıyla');
             loadDonors();
             loadDashboardStats();
+            refreshNotificationsAfterChange();
         } else {
         }
     } catch (error) {
@@ -651,6 +914,8 @@ async function addDonation(event) {
             closeModal();
             loadDonations();
             loadDashboardStats();
+            loadReportsData();
+            refreshNotificationsAfterChange();
         } else {
         }
     } catch (error) {
@@ -772,6 +1037,7 @@ async function addBeneficiary(event) {
             closeModal();
             loadBeneficiaries();
             loadDashboardStats();
+            refreshNotificationsAfterChange();
         } else {
         }
     } catch (error) {
@@ -874,6 +1140,7 @@ async function updateBeneficiary(event, id) {
             showAlert('Güncellendi yararlanıcı başarıyla');
             closeModal();
             loadBeneficiaries();
+            refreshNotificationsAfterChange();
         } else {
         }
     } catch (error) {
@@ -884,7 +1151,7 @@ async function updateBeneficiary(event, id) {
 }
 
 async function deleteBeneficiary(id) {
-    if (!confirm('Bu kaydı silmek istediğinizden emin misiniz? yararlanıcı؟')) return;
+    if (!confirm('Bu yararlanıcıyı silmek istediğinize emin misiniz?')) return;
 
     try {
         const response = await fetch(`${API_BASE_URL}/beneficiaries/${id}`, {
@@ -897,6 +1164,7 @@ async function deleteBeneficiary(id) {
             showAlert('Silindi yararlanıcı başarıyla');
             loadBeneficiaries();
             loadDashboardStats();
+            refreshNotificationsAfterChange();
         } else {
         }
     } catch (error) {
@@ -936,21 +1204,15 @@ function updateAidTable() {
     }
 
     aids.forEach(aid => {
-        const aidTypeText = {
-            'Food': 'Gıda',
-            'Medical': 'Tıbbi',
-            'Education': 'Eğitim',
-            'Housing': 'Konut',
-            'Emergency': 'Acil',
-            'Other': 'Diğer'
-        }[aid.aidType] || aid.aidType;
+        const aidTypeText = getAidTypeLabel(aid.aidType || aid.AidTypeName);
+        const estimatedValue = Number(aid.estimatedValue ?? aid.EstimatedValue ?? 0);
 
         const row = `
             <tr>
                 <td>${aid.id}</td>
                 <td>${aid.beneficiaryName}</td>
                 <td><span class="badge badge-info">${aidTypeText}</span></td>
-                <td class="amount">${aid.estimatedValue ? aid.estimatedValue.toLocaleString() + ' TRY' : '-'}</td>
+                <td class="amount">${estimatedValue ? estimatedValue.toLocaleString('tr-TR') + ' TRY' : '-'}</td>
                 <td>${aid.date}</td>
                 <td class="action-buttons">
                     <button class="btn-edit" onclick="viewAid(${aid.id})">Görüntüle</button>
@@ -959,6 +1221,26 @@ function updateAidTable() {
         `;
         tbody.innerHTML += row;
     });
+}
+
+function getAidTypeLabel(type) {
+    if (!type) return '-';
+    const normalized = type.toString().toLowerCase();
+    const map = {
+        'food': 'Gıda',
+        'gıda': 'Gıda',
+        'medical': 'Tıbbi',
+        'tıbbi': 'Tıbbi',
+        'education': 'Eğitim',
+        'eğitim': 'Eğitim',
+        'housing': 'Konut',
+        'konut': 'Konut',
+        'emergency': 'Acil',
+        'acil': 'Acil',
+        'other': 'Diğer',
+        'diğer': 'Diğer'
+    };
+    return map[normalized] || type;
 }
 
 async function addAidDistribution(event) {
@@ -985,6 +1267,7 @@ async function addAidDistribution(event) {
             showAlert('Kaydedildi yardım başarıyla');
             closeModal();
             loadAidDistributions();
+            refreshNotificationsAfterChange();
         } else {
         }
     } catch (error) {
@@ -1108,6 +1391,7 @@ async function addStaff(event) {
             closeModal();
             loadStaff();
             loadDashboardStats();
+            refreshNotificationsAfterChange();
         } else {
         }
     } catch (error) {
@@ -1194,6 +1478,7 @@ async function updateStaff(event, id) {
             showAlert('Güncellendi personel başarıyla');
             closeModal();
             loadStaff();
+            refreshNotificationsAfterChange();
         } else {
         }
     } catch (error) {
@@ -1204,7 +1489,7 @@ async function updateStaff(event, id) {
 }
 
 async function deleteStaff(id) {
-    if (!confirm('Bu kaydı silmek istediğinizden emin misiniz? personel؟')) return;
+    if (!confirm('Bu personeli silmek istediğinize emin misiniz?')) return;
 
     try {
         const response = await fetch(`${API_BASE_URL}/staff/${id}`, {
@@ -1217,6 +1502,7 @@ async function deleteStaff(id) {
             showAlert('Silindi personel başarıyla');
             loadStaff();
             loadDashboardStats();
+            refreshNotificationsAfterChange();
         } else {
         }
     } catch (error) {
@@ -1338,6 +1624,7 @@ async function addSponsorship(event) {
             showAlert('Kaydedildi sponsorluk başarıyla');
             closeModal();
             loadSponsorships();
+            refreshNotificationsAfterChange();
         } else {
         }
     } catch (error) {
@@ -1750,7 +2037,8 @@ function switchLanguage(lang) {
 
     document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
 
-    const currentPage = document.querySelector('.nav-link.active')?.getAttribute('data-page') || 'dashboard';
+    const activeLink = document.querySelector('.nav-link.active');
+    const currentPage = (activeLink && activeLink.getAttribute('data-page')) || 'dashboard';
     updatePageTitle(currentPage);
 
     updateStaticTexts();
@@ -2056,110 +2344,62 @@ function translateNoDataMessages(t) {
 }
 
 
-async function loadNotifications() {
+async function loadNotifications(autoRender = true) {
     try {
         const response = await fetch(`${API_BASE_URL}/notifications`);
-        if (response.ok) {
-            notifications = await response.json();
-        } else {
-            notifications = getSampleNotifications();
+        if (!response.ok) {
+            throw new Error('API notifications unavailable');
         }
-        updateNotificationBadge();
+
+        const data = await response.json();
+        notifications = data.map(normalizeNotificationPayload);
     } catch (error) {
-        console.log('Using sample notifications');
+        const errorMessage = error && error.message ? error.message : error;
+        console.warn('Using sample notifications', errorMessage);
         notifications = getSampleNotifications();
-        updateNotificationBadge();
+    }
+
+    updateNotificationBadge();
+
+    const notificationPanel = document.getElementById('notificationPanel');
+    if (autoRender && notificationPanel && notificationPanel.classList.contains('active')) {
+        renderNotifications();
     }
 }
 
+function normalizeNotificationPayload(item) {
+    return {
+        id: item.id,
+        type: item.type || 'info',
+        title: item.title || '',
+        message: item.message || '',
+        createdAt: item.createdAt || item.time || new Date().toISOString(),
+        read: Boolean(item.read ?? item.isRead ?? false)
+    };
+}
+
 function getSampleNotifications() {
-    const sampleAr = [
-        {
-            id: 1,
-            type: 'success',
-            title: 'Yeni Bağış',
-            message: 'Mehmet Ahmet\'ten 5000 TRY bağış alındı',
-            time: '5 dakika önce',
-            read: false
-        },
-        {
-            id: 2,
-            type: 'info',
-            title: 'Yeni Yararlanıcı',
-            message: 'Yetim sponsorluğu sistemine yeni yararlanıcı eklendi',
-            time: '1 saat önce',
-            read: false
-        },
-        {
-            id: 3,
-            type: 'warning',
-            title: 'Uyarı',
-            message: 'Aylık yardım dağıtım tarihi yaklaşıyor',
-            time: '2 saat önce',
-            read: true
-        },
-        {
-            id: 4,
-            type: 'success',
-            title: 'Aylık Rapor',
-            message: 'Aralık ayı aylık raporu başarıyla oluşturuldu',
-            time: '3 saat önce',
-            read: true
-        },
-        {
-            id: 5,
-            type: 'info',
-            title: 'Yeni Personel',
-            message: 'Yardım bölümüne yeni personel eklendi',
-            time: 'Dün',
-            read: true
-        }
-    ];
+    const now = Date.now();
+    const baseSamples = currentLanguage === 'ar'
+        ? [
+            { id: 1, type: 'success', title: 'Yeni Bağış', message: 'Mehmet Ahmet\'ten 5000 TRY bağış alındı', time: '5 dakika önce', read: false },
+            { id: 2, type: 'info', title: 'Yeni Yararlanıcı', message: 'Yetim sponsorluğu sistemine yeni yararlanıcı eklendi', time: '1 saat önce', read: false },
+            { id: 3, type: 'warning', title: 'Uyarı', message: 'Aylık yardım dağıtım tarihi yaklaşıyor', time: '2 saat önce', read: true },
+            { id: 4, type: 'success', title: 'Aylık Rapor', message: 'Aralık ayı aylık raporu başarıyla oluşturuldu', time: '3 saat önce', read: true },
+            { id: 5, type: 'info', title: 'Yeni Personel', message: 'Yardım bölümüne yeni personel eklendi', time: 'Dün', read: true }
+        ]
+        : [
+            { id: 1, type: 'success', title: 'Yeni Bağış', message: 'Mehmet Ahmet\'ten 5000 TL bağış alındı', time: '5 dakika önce', read: false },
+            { id: 2, type: 'info', title: 'Yeni Yararlanıcı', message: 'Yetim sponsorluğu sistemine yeni bir yararlanıcı kaydedildi', time: '1 saat önce', read: false },
+            { id: 3, type: 'warning', title: 'Uyarı', message: 'Aylık yardım dağıtım tarihi yaklaşıyor', time: '2 saat önce', read: true },
+            { id: 4, type: 'success', title: 'Aylık Rapor', message: 'Aralık ayı raporu başarıyla oluşturuldu', time: '3 saat önce', read: true },
+            { id: 5, type: 'info', title: 'Yeni Personel', message: 'Yardım bölümüne yeni bir personel eklendi', time: 'Dün', read: true }
+        ];
 
-    const sampleTr = [
-        {
-            id: 1,
-            type: 'success',
-            title: 'Yeni Bağış',
-            message: 'Mehmet Ahmet\'ten 5000 TL bağış alındı',
-            time: '5 dakika önce',
-            read: false
-        },
-        {
-            id: 2,
-            type: 'info',
-            title: 'Yeni Yararlanıcı',
-            message: 'Yetim sponsorluğu sistemine yeni bir yararlanıcı kaydedildi',
-            time: '1 saat önce',
-            read: false
-        },
-        {
-            id: 3,
-            type: 'warning',
-            title: 'Uyarı',
-            message: 'Aylık yardım dağıtım tarihi yaklaşıyor',
-            time: '2 saat önce',
-            read: true
-        },
-        {
-            id: 4,
-            type: 'success',
-            title: 'Aylık Rapor',
-            message: 'Aralık ayı raporu başarıyla oluşturuldu',
-            time: '3 saat önce',
-            read: true
-        },
-        {
-            id: 5,
-            type: 'info',
-            title: 'Yeni Personel',
-            message: 'Yardım bölümüne yeni bir personel eklendi',
-            time: 'Dün',
-            read: true
-        }
-    ];
-
-    return currentLanguage === 'ar' ? sampleAr : sampleTr;
+    return baseSamples.map((item, index) => normalizeNotificationPayload({
+        ...item,
+        createdAt: new Date(now - (index + 1) * 15 * 60 * 1000).toISOString()
+    }));
 }
 
 function toggleNotifications() {
@@ -2168,6 +2408,7 @@ function toggleNotifications() {
 
     if (isActive) {
         renderNotifications();
+        loadNotifications();
     }
 
     if (isActive) {
@@ -2214,7 +2455,7 @@ function renderNotifications() {
             <div class="notification-content">
                 <div class="notification-title">${notif.title}</div>
                 <div class="notification-message">${notif.message}</div>
-                <div class="notification-time">${notif.time}</div>
+                <div class="notification-time">${formatNotificationTime(notif.createdAt) || notif.time || ''}</div>
             </div>
         </div>
     `).join('');
@@ -2245,26 +2486,56 @@ function updateNotificationBadge() {
 
 function markAsRead(id) {
     const notification = notifications.find(n => n.id === id);
-    if (notification) {
-        notification.read = true;
-        updateNotificationBadge();
-        renderNotifications();
-    }
+    if (!notification || notification.read) return;
+
+    notification.read = true;
+    updateNotificationBadge();
+    renderNotifications();
+
+    fetch(`${API_BASE_URL}/notifications/${id}/read`, {
+        method: 'POST'
+    }).catch(err => console.error('Bildirim güncellenemedi:', err));
 }
 
 function markAllAsRead() {
     notifications.forEach(n => n.read = true);
     updateNotificationBadge();
     renderNotifications();
+
+    fetch(`${API_BASE_URL}/notifications/read-all`, {
+        method: 'POST'
+    }).catch(err => console.error('Bildirimler güncellenemedi:', err));
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     loadNotifications();
 });
 
+function formatNotificationTime(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const diffMs = Date.now() - date.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMinutes < 1) return 'Az önce';
+    if (diffMinutes < 60) return `${diffMinutes} dk önce`;
+    if (diffHours < 24) return `${diffHours} sa önce`;
+    if (diffDays < 7) return `${diffDays} gün önce`;
+    return date.toLocaleString('tr-TR');
+}
+
+function refreshNotificationsAfterChange() {
+    loadNotifications(false);
+}
+
 
 async function loadReportsData() {
-    const period = document.getElementById('reportPeriod')?.value || 'month';
+    const periodSelect = document.getElementById('reportPeriod');
+    const period = (periodSelect && periodSelect.value) || 'month';
 
     try {
         const response = await fetch(`${API_BASE_URL}/dashboard/stats`);
@@ -2272,10 +2543,11 @@ async function loadReportsData() {
             const stats = await response.json();
 
             document.getElementById('totalDonationsAmount').textContent =
-                (stats.totalDonations || 0).toLocaleString() + ' ₺';
+                (stats.totalDonationAmount || 0).toLocaleString('tr-TR') + ' ₺';
             document.getElementById('reportDonorsCount').textContent = stats.totalDonors || 0;
             document.getElementById('reportBeneficiariesCount').textContent = stats.totalBeneficiaries || 0;
-            document.getElementById('totalAidsCount').textContent = stats.totalAids || 0;
+            document.getElementById('totalAidsCount').textContent = stats.totalAidDistributions || 0;
+
         }
 
         await loadTopDonors();
@@ -2292,41 +2564,56 @@ async function loadTopDonors() {
         const donorsResponse = await fetch(`${API_BASE_URL}/donors`);
         const donationsResponse = await fetch(`${API_BASE_URL}/donations`);
 
-        if (donorsResponse.ok && donationsResponse.ok) {
-            const donors = await donorsResponse.json();
-            const donations = await donationsResponse.json();
-
-            const donorStats = {};
-            donations.forEach(donation => {
-                const donorId = donation.DonorID;
-                if (!donorStats[donorId]) {
-                    donorStats[donorId] = {
-                        count: 0,
-                        total: 0,
-                        lastDate: donation.DonationDate
-                    };
-                }
-                donorStats[donorId].count++;
-                donorStats[donorId].total += parseFloat(donation.DonationAmount) || 0;
-
-                if (new Date(donation.DonationDate) > new Date(donorStats[donorId].lastDate)) {
-                    donorStats[donorId].lastDate = donation.DonationDate;
-                }
-            });
-
-            const topDonors = donors
-                .filter(donor => donorStats[donor.DonorID])
-                .map(donor => ({
-                    ...donor,
-                    ...donorStats[donor.DonorID]
-                }))
-                .sort((a, b) => b.total - a.total)
-                .slice(0, 10);
-
-            updateTopDonorsTable(topDonors);
+        if (!donorsResponse.ok || !donationsResponse.ok) {
+            throw new Error('Top donor API cevabı geçersiz');
         }
+
+        const donorList = await donorsResponse.json();
+        const donationList = await donationsResponse.json();
+
+        const donorStats = {};
+        donationList.forEach(donation => {
+            const donorId = donation.donorId ?? donation.DonorID;
+            if (!donorId) return;
+
+            const amount = parseFloat(donation.amount ?? donation.DonationAmount ?? 0) || 0;
+            const dateValue = donation.date || donation.DonationDate || new Date().toISOString();
+            const parsedDate = parseDateString(dateValue) || new Date();
+
+            if (!donorStats[donorId]) {
+                donorStats[donorId] = {
+                    count: 0,
+                    total: 0,
+                    lastDate: parsedDate
+                };
+            }
+
+            donorStats[donorId].count += 1;
+            donorStats[donorId].total += amount;
+
+            if (parsedDate > donorStats[donorId].lastDate) {
+                donorStats[donorId].lastDate = parsedDate;
+            }
+        });
+
+        const topDonors = donorList
+            .filter(donor => donorStats[donor.id ?? donor.DonorID])
+            .map(donor => {
+                const donorId = donor.id ?? donor.DonorID;
+                return {
+                    id: donorId,
+                    firstName: donor.firstName || donor.FirstName || '',
+                    lastName: donor.lastName || donor.LastName || '',
+                    ...donorStats[donorId]
+                };
+            })
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 10);
+
+        updateTopDonorsTable(topDonors);
     } catch (error) {
         console.error('En iyi bağışçılar yükleme hatası:', error);
+        updateTopDonorsTable([]);
     }
 }
 
@@ -2334,7 +2621,11 @@ function updateTopDonorsTable(topDonors) {
     const tbody = document.getElementById('topDonorsTable');
     const t = translations[currentLanguage];
 
-    if (topDonors.length === 0) {
+    if (!tbody) {
+        return;
+    }
+
+    if (!topDonors || topDonors.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="5" style="text-align:center; padding:40px; color: #999;">
@@ -2348,58 +2639,59 @@ function updateTopDonorsTable(topDonors) {
         return;
     }
 
-    tbody.innerHTML = topDonors.map((donor, index) => `
+    tbody.innerHTML = topDonors.map((donor, index) => {
+        const lastDonationDate = parseDateString(donor.lastDate);
+        const formattedDate = lastDonationDate
+            ? lastDonationDate.toLocaleDateString(currentLanguage === 'ar' ? 'ar-EG' : 'tr-TR')
+            : '-';
+
+        return `
         <tr>
             <td><strong>${index + 1}</strong></td>
-            <td>${donor.FirstName} ${donor.LastName}</td>
+            <td>${donor.firstName} ${donor.lastName}</td>
             <td>${donor.count}</td>
-            <td><strong>${donor.total.toLocaleString()} ₺</strong></td>
-            <td>${new Date(donor.lastDate).toLocaleDateString('ar-EG')}</td>
-        </tr>
-    `).join('');
+            <td><strong>${(donor.total || 0).toLocaleString('tr-TR')} ₺</strong></td>
+            <td>${formattedDate}</td>
+        </tr>`;
+    }).join('');
 }
 
 async function loadAidByType() {
     try {
-        const aidsResponse = await fetch(`${API_BASE_URL}/aid-distribution`);
-        const aidTypesResponse = await fetch(`${API_BASE_URL}/aid-types`);
-
-        if (aidsResponse.ok && aidTypesResponse.ok) {
-            const aids = await aidsResponse.json();
-            const aidTypes = await aidTypesResponse.json();
-
-            const typeStats = {};
-            let totalValue = 0;
-
-            aids.forEach(aid => {
-                const typeId = aid.AidTypeID;
-                const value = parseFloat(aid.Value) || 0;
-                totalValue += value;
-
-                if (!typeStats[typeId]) {
-                    typeStats[typeId] = {
-                        count: 0,
-                        total: 0
-                    };
-                }
-                typeStats[typeId].count++;
-                typeStats[typeId].total += value;
-            });
-
-            const aidByType = aidTypes
-                .filter(type => typeStats[type.AidTypeID])
-                .map(type => ({
-                    ...type,
-                    ...typeStats[type.AidTypeID],
-                    percentage: totalValue > 0 ?
-                        ((typeStats[type.AidTypeID].total / totalValue) * 100).toFixed(1) : 0
-                }))
-                .sort((a, b) => b.total - a.total);
-
-            updateAidByTypeTable(aidByType);
+        if (aids.length === 0) {
+            await loadAidDistributions();
         }
+
+        if (aids.length === 0) {
+            updateAidByTypeTable([]);
+            return;
+        }
+
+        const typeStats = aids.reduce((acc, aid) => {
+            const key = (aid.aidType || aid.AidTypeName || 'Other').trim();
+            const value = Number(aid.estimatedValue ?? aid.EstimatedValue ?? 0) || 0;
+
+            if (!acc[key]) {
+                acc[key] = { typeName: key, count: 0, total: 0 };
+            }
+
+            acc[key].count += 1;
+            acc[key].total += value;
+            return acc;
+        }, {});
+
+        const totalValue = Object.values(typeStats).reduce((sum, stat) => sum + stat.total, 0);
+        const aidByType = Object.values(typeStats)
+            .map(stat => ({
+                ...stat,
+                percentage: totalValue > 0 ? ((stat.total / totalValue) * 100).toFixed(1) : '0.0'
+            }))
+            .sort((a, b) => b.total - a.total);
+
+        updateAidByTypeTable(aidByType);
     } catch (error) {
         console.error('Türe göre yardımlar yükleme hatası:', error);
+        updateAidByTypeTable([]);
     }
 }
 
@@ -2424,41 +2716,86 @@ function updateAidByTypeTable(aidByType) {
     tbody.innerHTML = aidByType.map((type, index) => `
         <tr>
             <td><strong>${index + 1}</strong></td>
-            <td>${type.TypeName}</td>
+            <td>${getAidTypeLabel(type.typeName || type.TypeName)}</td>
             <td>${type.count}</td>
-            <td><strong>${type.total.toLocaleString()} ₺</strong></td>
+            <td><strong>${(type.total || 0).toLocaleString('tr-TR')} ₺</strong></td>
             <td><span class="badge badge-info">${type.percentage}%</span></td>
         </tr>
     `).join('');
 }
 
-function exportReport() {
-    const period = document.getElementById('reportPeriod')?.value || 'month';
+function exportReport(options = {}) {
+    const periodSelect = document.getElementById('reportPeriod');
+    const period = (periodSelect && periodSelect.value) || 'month';
     const t = translations[currentLanguage];
+    const silent = options.silent === true;
 
     let csv = 'IHH Charity Management System - Report\n\n';
     csv += `Period: ${period}\n`;
     csv += `Generated: ${new Date().toLocaleString()}\n\n`;
 
     csv += 'Statistics:\n';
-    csv += `Total Donors,${document.getElementById('reportDonorsCount')?.textContent || 0}\n`;
-    csv += `Total Donations,${document.getElementById('totalDonationsAmount')?.textContent || '0 ₺'}\n`;
-    csv += `Total Beneficiaries,${document.getElementById('reportBeneficiariesCount')?.textContent || 0}\n`;
-    csv += `Total Aids,${document.getElementById('totalAidsCount')?.textContent || 0}\n`;
+    const reportDonorsCountEl = document.getElementById('reportDonorsCount');
+    const totalDonationsAmountEl = document.getElementById('totalDonationsAmount');
+    const reportBeneficiariesCountEl = document.getElementById('reportBeneficiariesCount');
+    const totalAidsCountEl = document.getElementById('totalAidsCount');
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
+    csv += `Total Donors,${reportDonorsCountEl ? reportDonorsCountEl.textContent : 0}\n`;
+    csv += `Total Donations,${totalDonationsAmountEl ? totalDonationsAmountEl.textContent : '0 ₺'}\n`;
+    csv += `Total Beneficiaries,${reportBeneficiariesCountEl ? reportBeneficiariesCountEl.textContent : 0}\n`;
+    csv += `Total Aids,${totalAidsCountEl ? totalAidsCountEl.textContent : 0}\n`;
 
-    link.setAttribute('href', url);
-    link.setAttribute('download', `IHH_Report_${period}_${Date.now()}.csv`);
-    link.style.visibility = 'hidden';
+    downloadCsv(csv, `IHH_Report_${period}_${Date.now()}.csv`);
+    if (!silent) {
+        showAlert('Rapor başarıyla indirildi', 'success');
+    }
+    return true;
+}
 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+function downloadReportPdf() {
+    const reportSection = document.getElementById('reports');
+    if (!reportSection) {
+        showAlert('Rapor alanı bulunamadı', 'error');
+        return;
+    }
 
-    showAlert('Rapor başarıyla indirildi', 'success');
+    const printWindow = window.open('', '_blank', 'width=1024,height=768');
+    if (!printWindow) {
+        showAlert('Tarayıcı yeni pencereyi engelledi', 'error');
+        return;
+    }
+
+    const stylesheetLink = document.querySelector('link[rel="stylesheet"]');
+    const stylesheetHref = stylesheetLink ? stylesheetLink.href : '';
+    const html = `<!DOCTYPE html>
+        <html lang="tr">
+        <head>
+            <meta charset="UTF-8" />
+            <title>IHH Raporu</title>
+            ${stylesheetHref ? `<link rel="stylesheet" href="${stylesheetHref}">` : ''}
+            <style>
+                body { padding: 24px; background: #fff; }
+            </style>
+        </head>
+        <body>
+            ${reportSection.innerHTML}
+        </body>
+        </html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+        try {
+            printWindow.print();
+        } catch (error) {
+            console.error('PDF yazdırma hatası:', error);
+        }
+    }, 350);
+
+    showAlert('PDF çıktısı için yazdırma penceresi açıldı');
 }
 
 
@@ -2497,75 +2834,129 @@ function debounce(func, wait) {
     };
 }
 
+function normalizeSearchValue(value) {
+    return (value ?? '').toString().toLowerCase();
+}
+
+function matchesSearch(values, query) {
+    return values.some(value => value && value.includes(query));
+}
+
+function formatSearchDate(value) {
+    if (!value) return '';
+    const parsed = parseDateString(value);
+    if (parsed) {
+        return parsed.toLocaleDateString(currentLanguage === 'ar' ? 'ar-EG' : 'tr-TR');
+    }
+    return value;
+}
+
+function parseDateString(value) {
+    if (!value) return null;
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+        return value;
+    }
+
+    const direct = new Date(value);
+    if (!Number.isNaN(direct.getTime())) {
+        return direct;
+    }
+
+    if (typeof value === 'string') {
+        const parts = value.split(/[\/\-]/);
+        if (parts.length === 3) {
+            let day;
+            let month;
+            let year;
+
+            if (parts[0].length === 4) {
+                year = parseInt(parts[0], 10);
+                month = parseInt(parts[1], 10);
+                day = parseInt(parts[2], 10);
+            } else {
+                day = parseInt(parts[0], 10);
+                month = parseInt(parts[1], 10);
+                year = parseInt(parts[2], 10);
+            }
+
+            if (![day, month, year].some(Number.isNaN)) {
+                return new Date(year, (month || 1) - 1, day || 1);
+            }
+        }
+    }
+
+    return null;
+}
+
 async function performSearch() {
     const searchInput = document.getElementById('searchInput');
-    const query = searchInput?.value.trim().toLowerCase();
+    const rawQuery = searchInput ? searchInput.value.trim() : '';
+    const query = rawQuery ? rawQuery.toLowerCase() : '';
 
     if (!query || query.length < 1) {
         hideSearchResults();
         return;
     }
 
-    console.log('🔍 Aranıyor::', query);
-
     showSearchLoading();
 
-    const results = {
-        donors: [],
-        donations: [],
-        beneficiaries: [],
-        aids: [],
-        staff: [],
-        sponsorships: []
-    };
+    const loaders = [];
+    if (donors.length === 0) loaders.push(loadDonors());
+    if (donations.length === 0) loaders.push(loadDonations());
+    if (beneficiaries.length === 0) loaders.push(loadBeneficiaries());
+    if (staff.length === 0) loaders.push(loadStaff());
+    if (aids.length === 0) loaders.push(loadAidDistributions());
+    if (sponsorships.length === 0) loaders.push(loadSponsorships());
 
     try {
-        const searchPromises = [];
-
-        if (donors.length === 0) {
-            searchPromises.push(loadDonors().catch(() => []));
-        }
-        results.donors = donors.filter(donor =>
-            `${donor.FirstName} ${donor.LastName}`.toLowerCase().includes(query) ||
-            (donor.PhoneNumber && donor.PhoneNumber.toLowerCase().includes(query)) ||
-            (donor.Email && donor.Email.toLowerCase().includes(query)) ||
-            (donor.City && donor.City.toLowerCase().includes(query))
-        );
-
-        if (donations.length === 0) {
-            searchPromises.push(loadDonations().catch(() => []));
-        }
-        results.donations = donations.filter(donation =>
-            donation.DonationAmount.toString().includes(query) ||
-            (donation.DonorName && donation.DonorName.toLowerCase().includes(query))
-        );
-
-        if (beneficiaries.length === 0) {
-            searchPromises.push(loadBeneficiaries().catch(() => []));
-        }
-        results.beneficiaries = beneficiaries.filter(beneficiary =>
-            `${beneficiary.firstName} ${beneficiary.lastName}`.toLowerCase().includes(query) ||
-            (beneficiary.phone && beneficiary.phone.toLowerCase().includes(query)) ||
-            (beneficiary.city && beneficiary.city.toLowerCase().includes(query))
-        );
-
-        if (staff.length === 0) {
-            searchPromises.push(loadStaff().catch(() => []));
-        }
-        results.staff = staff.filter(employee =>
-            `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(query) ||
-            (employee.phone && employee.phone.toLowerCase().includes(query)) ||
-            (employee.email && employee.email.toLowerCase().includes(query)) ||
-            (employee.position && employee.position.toLowerCase().includes(query)) ||
-            (employee.department && employee.department.toLowerCase().includes(query))
-        );
-
-        if (searchPromises.length > 0) {
-            await Promise.all(searchPromises);
-            return performSearch();
+        if (loaders.length > 0) {
+            await Promise.allSettled(loaders);
         }
 
-        displaySearchResults(results, query);
+        const results = {
+            donors: donors.filter(donor => matchesSearch([
+                `${normalizeSearchValue(donor.firstName || donor.FirstName)} ${normalizeSearchValue(donor.lastName || donor.LastName)}`.trim(),
+                normalizeSearchValue(donor.phone || donor.PhoneNumber),
+                normalizeSearchValue(donor.email || donor.Email),
+                normalizeSearchValue(donor.city || donor.City),
+                normalizeSearchValue(donor.country || donor.Country)
+            ], query)),
+            donations: donations.filter(donation => matchesSearch([
+                normalizeSearchValue(donation.donorName || donation.DonorName),
+                normalizeSearchValue(donation.paymentMethod || donation.PaymentMethod),
+                normalizeSearchValue(donation.type || donation.DonationType),
+                normalizeSearchValue(donation.currency || donation.DonationCurrency),
+                normalizeSearchValue(donation.amount ?? donation.DonationAmount)
+            ], query)),
+            beneficiaries: beneficiaries.filter(beneficiary => matchesSearch([
+                `${normalizeSearchValue(beneficiary.firstName || beneficiary.FirstName)} ${normalizeSearchValue(beneficiary.lastName || beneficiary.LastName)}`.trim(),
+                normalizeSearchValue(beneficiary.phone || beneficiary.PhoneNumber),
+                normalizeSearchValue(beneficiary.city || beneficiary.City),
+                normalizeSearchValue(beneficiary.type || beneficiary.BeneficiaryType)
+            ], query)),
+            aids: aids.filter(aid => matchesSearch([
+                normalizeSearchValue(aid.beneficiaryName || aid.BeneficiaryName),
+                normalizeSearchValue(aid.aidType || aid.AidTypeName),
+                normalizeSearchValue(aid.notes || aid.Notes),
+                normalizeSearchValue(aid.date || aid.DistributionDate),
+                normalizeSearchValue(aid.estimatedValue ?? aid.EstimatedValue)
+            ], query)),
+            staff: staff.filter(employee => matchesSearch([
+                `${normalizeSearchValue(employee.firstName || employee.FirstName)} ${normalizeSearchValue(employee.lastName || employee.LastName)}`.trim(),
+                normalizeSearchValue(employee.phone || employee.PhoneNumber),
+                normalizeSearchValue(employee.email || employee.Email),
+                normalizeSearchValue(employee.position || employee.Position),
+                normalizeSearchValue(employee.department || employee.Department)
+            ], query)),
+            sponsorships: sponsorships.filter(record => matchesSearch([
+                normalizeSearchValue(record.donorName || record.DonorName),
+                normalizeSearchValue(record.orphanName || record.BeneficiaryName),
+                normalizeSearchValue(record.paymentFrequency || record.PaymentFrequency),
+                normalizeSearchValue(record.monthlyAmount ?? record.MonthlyAmount)
+            ], query))
+        };
+
+        displaySearchResults(results, rawQuery);
     } catch (error) {
         console.error('Arama hatası:', error);
         hideSearchResults();
@@ -2624,12 +3015,16 @@ function displaySearchResults(results, query) {
         html += `<div class="search-category">
             <div class="search-category-title">${t.donors} (${results.donors.length})</div>`;
         results.donors.slice(0, maxPerCategory).forEach(donor => {
+            const donorId = donor.DonorID || donor.id;
+            const donorName = `${donor.FirstName || donor.firstName || ''} ${donor.LastName || donor.lastName || ''}`.trim();
+            const donorPhone = donor.PhoneNumber || donor.phone || '';
+            const donorCity = donor.City || donor.city || '';
             html += `
-                <div class="search-result-item" onclick="navigateToPage('donors', ${donor.DonorID})">
+                <div class="search-result-item" onclick="navigateToPage('donors', ${donorId || 'null'})">
                     <span class="search-icon">👤</span>
                     <div class="search-result-info">
-                        <div class="search-result-name">${donor.FirstName} ${donor.LastName}</div>
-                        <div class="search-result-details">${donor.PhoneNumber || ''} • ${donor.City || ''}</div>
+                        <div class="search-result-name">${donorName}</div>
+                        <div class="search-result-details">${donorPhone} • ${donorCity}</div>
                     </div>
                 </div>`;
         });
@@ -2643,12 +3038,15 @@ function displaySearchResults(results, query) {
         html += `<div class="search-category">
             <div class="search-category-title">${t.beneficiaries} (${results.beneficiaries.length})</div>`;
         results.beneficiaries.slice(0, maxPerCategory).forEach(beneficiary => {
+            const beneficiaryName = `${beneficiary.firstName || beneficiary.FirstName || ''} ${beneficiary.lastName || beneficiary.LastName || ''}`.trim();
+            const beneficiaryPhone = beneficiary.phone || beneficiary.PhoneNumber || '';
+            const beneficiaryType = beneficiary.type || beneficiary.BeneficiaryType || '';
             html += `
-                <div class="search-result-item" onclick="navigateToPage('beneficiaries', ${beneficiary.id})">
+                <div class="search-result-item" onclick="navigateToPage('beneficiaries', ${beneficiary.id || beneficiary.BeneficiaryID || 'null'})">
                     <span class="search-icon">🏠</span>
                     <div class="search-result-info">
-                        <div class="search-result-name">${beneficiary.firstName} ${beneficiary.lastName}</div>
-                        <div class="search-result-details">${beneficiary.phone || ''} • ${beneficiary.type || ''}</div>
+                        <div class="search-result-name">${beneficiaryName}</div>
+                        <div class="search-result-details">${beneficiaryPhone} • ${beneficiaryType}</div>
                     </div>
                 </div>`;
         });
@@ -2658,16 +3056,44 @@ function displaySearchResults(results, query) {
         html += '</div>';
     }
 
+    if (results.aids.length > 0) {
+        html += `<div class="search-category">
+            <div class="search-category-title">${t.aidDistribution} (${results.aids.length})</div>`;
+        results.aids.slice(0, maxPerCategory).forEach(aid => {
+            const aidId = aid.id || aid.DistributionID;
+            const beneficiaryName = aid.beneficiaryName || aid.BeneficiaryName || '';
+            const aidType = aid.aidType || aid.AidTypeName || '';
+            const aidDate = formatSearchDate(aid.date || aid.DistributionDate);
+            html += `
+                <div class="search-result-item" onclick="navigateToPage('aid', ${aidId || 'null'})">
+                    <span class="search-icon">🎁</span>
+                    <div class="search-result-info">
+                        <div class="search-result-name">${beneficiaryName}</div>
+                        <div class="search-result-details">${aidType} • ${aidDate}</div>
+                    </div>
+                </div>`;
+        });
+        if (results.aids.length > maxPerCategory) {
+            html += `<div class="search-show-more" onclick="showAllResults('aid')">${t.aidDistribution} ${results.aids.length - maxPerCategory}+ ...</div>`;
+        }
+        html += '</div>';
+    }
+
     if (results.donations.length > 0) {
         html += `<div class="search-category">
             <div class="search-category-title">${t.donations} (${results.donations.length})</div>`;
         results.donations.slice(0, maxPerCategory).forEach(donation => {
+            const donationId = donation.DonationID || donation.id;
+            const donationAmount = donation.DonationAmount || donation.amount || 0;
+            const donationCurrency = donation.DonationCurrency || donation.currency || '';
+            const donationName = donation.DonorName || donation.donorName || '';
+            const donationDate = formatSearchDate(donation.DonationDate || donation.date);
             html += `
-                <div class="search-result-item" onclick="navigateToPage('donations', ${donation.DonationID})">
+                <div class="search-result-item" onclick="navigateToPage('donations', ${donationId || 'null'})">
                     <span class="search-icon">💰</span>
                     <div class="search-result-info">
-                        <div class="search-result-name">${donation.DonationAmount} ${donation.DonationCurrency}</div>
-                        <div class="search-result-details">${donation.DonorName || ''} • ${new Date(donation.DonationDate).toLocaleDateString()}</div>
+                        <div class="search-result-name">${donationAmount} ${donationCurrency}</div>
+                        <div class="search-result-details">${donationName} • ${donationDate}</div>
                     </div>
                 </div>`;
         });
@@ -2681,17 +3107,46 @@ function displaySearchResults(results, query) {
         html += `<div class="search-category">
             <div class="search-category-title">${t.staff} (${results.staff.length})</div>`;
         results.staff.slice(0, maxPerCategory).forEach(employee => {
+            const employeeId = employee.id || employee.EmployeeID;
+            const staffName = `${employee.firstName || employee.FirstName || ''} ${employee.lastName || employee.LastName || ''}`.trim();
+            const staffPosition = employee.position || employee.Position || '';
+            const staffDepartment = employee.department || employee.Department || '';
             html += `
-                <div class="search-result-item" onclick="navigateToPage('staff', ${employee.id})">
+                <div class="search-result-item" onclick="navigateToPage('staff', ${employeeId || 'null'})">
                     <span class="search-icon">👔</span>
                     <div class="search-result-info">
-                        <div class="search-result-name">${employee.firstName} ${employee.lastName}</div>
-                        <div class="search-result-details">${employee.position || ''} • ${employee.department || ''}</div>
+                        <div class="search-result-name">${staffName}</div>
+                        <div class="search-result-details">${staffPosition} • ${staffDepartment}</div>
                     </div>
                 </div>`;
         });
         if (results.staff.length > maxPerCategory) {
             html += `<div class="search-show-more" onclick="showAllResults('staff')">${t.staff} ${results.staff.length - maxPerCategory}+ ...</div>`;
+        }
+        html += '</div>';
+    }
+
+    if (results.sponsorships.length > 0) {
+        html += `<div class="search-category">
+            <div class="search-category-title">${t.orphanSponsorship} (${results.sponsorships.length})</div>`;
+        results.sponsorships.slice(0, maxPerCategory).forEach(record => {
+            const sponsorshipId = record.id || record.SponsorshipID;
+            const donorName = record.donorName || record.DonorName || '';
+            const orphanName = record.orphanName || record.BeneficiaryName || '';
+            const monthly = Number(record.monthlyAmount ?? record.MonthlyAmount ?? 0);
+            const monthlyLabel = monthly ? `${monthly.toLocaleString('tr-TR')} ₺` : '';
+            const details = monthlyLabel ? `${orphanName} • ${monthlyLabel}` : orphanName;
+            html += `
+                <div class="search-result-item" onclick="navigateToPage('sponsorship', ${sponsorshipId || 'null'})">
+                    <span class="search-icon">🤝</span>
+                    <div class="search-result-info">
+                        <div class="search-result-name">${donorName}</div>
+                        <div class="search-result-details">${details}</div>
+                    </div>
+                </div>`;
+        });
+        if (results.sponsorships.length > maxPerCategory) {
+            html += `<div class="search-show-more" onclick="showAllResults('sponsorship')">${t.orphanSponsorship} ${results.sponsorships.length - maxPerCategory}+ ...</div>`;
         }
         html += '</div>';
     }
@@ -2717,7 +3172,10 @@ function closeDropdownOnClickOutside(event) {
 }
 
 function showAllResults(category) {
-    document.querySelector(`.nav-link[data-page="${category}"]`)?.click();
+    const targetLink = document.querySelector(`.nav-link[data-page="${category}"]`);
+    if (targetLink) {
+        targetLink.click();
+    }
     hideSearchResults();
 }
 

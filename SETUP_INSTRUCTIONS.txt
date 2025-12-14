@@ -1,0 +1,56 @@
+===============================================================
+    Veritabani baglantisini etkinlestirme kilavuzu
+===============================================================
+
+1) SQL Server Configuration Manager'i acin
+---------------------------------------------------------------
+- Windows tusuna basin.
+- "SQL Server Configuration Manager" yazip programi acin.
+- Bulamazsaniz Windows + R kisayolunu acip `SQLServerManager15.msc` yazin ve Enter'a basin.
+
+2) TCP/IP protokolunu etkinlestirin
+---------------------------------------------------------------
+- Sol menuden **SQL Server Network Configuration** secin.
+- **Protocols for MSSQLSERVER** ogesini acin.
+- Sag tarafta **TCP/IP** uzerine sag tiklayip **Enable** secin.
+- Uyari penceresini OK ile onaylayin.
+
+3) Named Pipes (istege bagli)
+---------------------------------------------------------------
+- Ayni listede **Named Pipes** uzerine sag tiklayin.
+- **Enable** secin ve uyariyi OK ile kapatin.
+
+4) 1433 portunu tanimlayin
+---------------------------------------------------------------
+- **TCP/IP** uzerine tekrar sag tiklayip **Properties** secin.
+- **IP Addresses** sekmesine gidin.
+- En alt kisimdaki **IPALL** bolumunde:
+  - **TCP Dynamic Ports** alanini bos birakin.
+  - **TCP Port** alanina `1433` yazin.
+- Degisiklikleri OK ile kaydedin.
+
+5) SQL Server servisini yeniden baslatin
+---------------------------------------------------------------
+- Sol menuden **SQL Server Services** secin.
+- Sag tarafta **SQL Server (MSSQLSERVER)** uzerine sag tiklayip **Restart** secin.
+- Durumun tekrar "Running" oldugunu dogrulayin.
+
+6) SSMS uzerinden uzaktan baglantilari acin
+---------------------------------------------------------------
+- SSMS'e gecin ve Object Explorer'da sunucu adina (IBOO) sag tiklayin.
+- **Properties** secenegini acin.
+- Sol menuden **Connections** secin.
+- **Allow remote connections to this server** kutusunu isaretleyip OK'e basin.
+
+7) Projeyi calistirin
+---------------------------------------------------------------
+- Terminalde `npm start` komutunu calistirin.
+- Beklenen cikti:
+  - Baglanti basarili mesaji
+  - Sunucu: IBOO
+  - Veritabani: IHH_Hayir
+- Uygulama 3000 portunda calisir; tarayicida `http://localhost:3000` adresini acin.
+
+===============================================================
+Herhangi bir sorun yasarsaniz adimlari tekrar gozden gecirin.
+===============================================================

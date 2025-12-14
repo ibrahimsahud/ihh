@@ -1,13 +1,9 @@
 -- ======================================
--- IHH Yardim Sistemi - Veritabani Semasi
--- MSSQL Server Database
--- Gelistiren: Ibrahim Sahud ve Ahmet Kassas
--- Dumlupinar Universitesi - 2025
+-- Calistirma adimlari:
+-- 1. SSMS (SQL Server Management Studio) uygulamasini acin.
+-- 2. IBOO sunucusuna baglanin.
+-- 3. Bu dosyayi F5 ile calistirin.
 -- ======================================
-
--- Veritabani olusturma
-CREATE DATABASE IHH_Hayir;
-GO
 
 USE IHH_Hayir;
 GO
@@ -136,7 +132,7 @@ CREATE TABLE Payments (
     StaffID INT NOT NULL,
     PaymentDate DATETIME DEFAULT GETDATE(),
     PaymentAmount DECIMAL(18,2) NOT NULL,
-    PaymentPeriod NVARCHAR(20), -- Ornek: 'January 2025'
+    PaymentPeriod NVARCHAR(20),
     PaymentMethod NVARCHAR(20) CHECK (PaymentMethod IN ('Cash', 'BankTransfer', 'Check')),
     Notes NVARCHAR(500),
     FOREIGN KEY (StaffID) REFERENCES Staff(StaffID)
@@ -176,75 +172,18 @@ CREATE TABLE Projects (
     FOREIGN KEY (BranchID) REFERENCES Branches(BranchID)
 );
 
-GO
-
 -- ======================================
--- Raporlama icin views
+-- Ornek veri (en az bir sube)
 -- ======================================
-
--- Bagisciya gore toplam bagis
-GO
-CREATE VIEW vw_DonorTotalDonations AS
-SELECT 
-    d.DonorID,
-    d.FirstName + ' ' + d.LastName AS DonorName,
-    COUNT(dn.DonationID) AS TotalDonations,
-    SUM(dn.DonationAmount) AS TotalAmount,
-    d.PhoneNumber,
-    d.Email
-FROM Donors d
-LEFT JOIN Donations dn ON d.DonorID = dn.DonorID
-GROUP BY d.DonorID, d.FirstName, d.LastName, d.PhoneNumber, d.Email;
-GO
-
--- Faydalanicinin aldigi yardimlar
-CREATE VIEW vw_BeneficiaryAidHistory AS
-SELECT 
-    b.BeneficiaryID,
-    b.FirstName + ' ' + b.LastName AS BeneficiaryName,
-    b.BeneficiaryType,
-    COUNT(ad.DistributionID) AS TotalAidsReceived,
-    SUM(ad.EstimatedValue) AS TotalValueReceived
-FROM Beneficiaries b
-LEFT JOIN AidDistribution ad ON b.BeneficiaryID = ad.BeneficiaryID
-GROUP BY b.BeneficiaryID, b.FirstName, b.LastName, b.BeneficiaryType;
-GO
-
--- Personel odeme ozetleri
-CREATE VIEW vw_StaffPaymentSummary AS
-SELECT 
-    s.StaffID,
-    s.FirstName + ' ' + s.LastName AS StaffName,
-    s.Position,
-    s.MonthlySalary,
-    COUNT(p.PaymentID) AS PaymentCount,
-    SUM(p.PaymentAmount) AS TotalPaid
-FROM Staff s
-LEFT JOIN Payments p ON s.StaffID = p.StaffID
-GROUP BY s.StaffID, s.FirstName, s.LastName, s.Position, s.MonthlySalary;
-GO
-
--- ======================================
--- Ornek veri girisi
--- ======================================
-
--- Subeler
 INSERT INTO Branches (BranchName, BranchCity, BranchAddress, PhoneNumber, Email) VALUES
-('Istanbul Merkez Subesi', 'Istanbul', 'Fatih, Istanbul', '+90 212 123 4567', 'istanbul@ihh.org.tr'),
-('Ankara Subesi', 'Ankara', 'Cankaya, Ankara', '+90 312 234 5678', 'ankara@ihh.org.tr'),
-('Bursa Subesi', 'Bursa', 'Osmangazi, Bursa', '+90 224 345 6789', 'bursa@ihh.org.tr');
+('Istanbul Merkez Subesi', 'Istanbul', 'Fatih, Istanbul', '+90 212 123 4567', 'istanbul@ihh.org.tr');
 
--- Bagiscilar
-INSERT INTO Donors (FirstName, LastName, PhoneNumber, Email, City, Country, DonorType) VALUES
-('Ahmet', 'Yilmaz', '+90 532 111 2233', 'ahmed.yilmaz@email.com', 'Istanbul', 'Turkey', 'Individual'),
-('Fatma', 'Kaya', '+90 533 222 3344', 'fatma.kaya@email.com', 'Ankara', 'Turkey', 'Individual'),
-('Nur', 'Ticaret', '+90 212 333 4455', 'info@nurticaret.com', 'Istanbul', 'Turkey', 'Corporate');
-
--- Yardim turleri
+-- Temel yardim turleri
 INSERT INTO AidTypes (AidTypeName, Description, Category) VALUES
-('Gida Paketi', 'Temel erzaklardan olusan aylik paket', 'Food'),
-('Tibbi Destek', 'Hasta ve klinikler icin tibbi malzeme', 'Medical'),
+('Gida Paketi', 'Temel erzaklardan olusan paket', 'Food'),
+('Tibbi Destek', 'Hastalar icin tibbi malzeme', 'Medical'),
 ('Egitim Seti', 'Okul cantasi ve kiyafet destegi', 'Education'),
-('Acil Nakit', 'Acil durumlar icin nakit yardimi', 'Emergency');
+('Acil Nakit', 'Acil durumlar icin finansman', 'Emergency');
 
-PRINT 'Veritabani basariyla olusturuldu!';
+PRINT 'Tum tablolar basariyla olusturuldu!';
+PRINT 'Artik uygulamayi kullanarak veri ekleyip silebilirsiniz.';

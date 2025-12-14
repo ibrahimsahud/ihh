@@ -1,7 +1,7 @@
 {
   "name": "ihh-management-system",
   "version": "1.0.0",
-  "description": "نظام إدارة جمعية IHH للإغاثة الإنسانية",
+  "description": "IHH yardim dernegi icin yonetim sistemi",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -17,24 +17,25 @@
   ],
   "authors": [
     {
-      "name": "إبراهيم شحود",
+      "name": "Ibrahim Sahud",
       "email": "ibrahim.sahud@ogr.dpu.edu.tr",
       "id": "202013172164"
     },
     {
-      "name": "أحمد قشاش",
+      "name": "Ahmet Kassas",
       "email": "ahmet.kassas@ogr.dpu.edu.tr",
       "id": "112113172064"
     }
   ],
-  "university": "جامعة دوملوبينار",
-  "course": "نظم إدارة قواعد البيانات - 131725123",
+  "university": "Dumlupinar Universitesi",
+  "course": "Veritabani Yonetimi - 131725123",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "mssql": "^10.0.1",
     "body-parser": "^1.20.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "msnodesqlv8": "^5.1.1",
+    "mssql": "^10.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

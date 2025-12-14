@@ -14,12 +14,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 const config = {
-    user: 'ahmet',
-    password: '',
-    server: 'AHMET\\SQLEXPRESS03',
+    user: 'ihhuser',
+    password: 'IHH@2025',
+    server: 'IBOO',
     database: 'IHH_Hayir',
     options: {
-        encrypt: false,
+        encrypt: true,
         trustServerCertificate: true,
         enableArithAbort: true
     },
@@ -31,22 +31,74 @@ const config = {
 };
 
 let pool;
+const NOTIFICATIONS_TABLE = 'SystemNotifications';
+
+function ensurePool(res) {
+    if (!pool) {
+        res.status(503).json({ error: 'Veritabanı bağlantısı yok. Lütfen daha sonra tekrar deneyin.' });
+        return false;
+    }
+    return true;
+}
+
+async function ensureNotificationTable() {
+    if (!pool) return;
+    const createTableQuery = `
+        IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[${NOTIFICATIONS_TABLE}]') AND type = 'U')
+        BEGIN
+            CREATE TABLE [dbo].[${NOTIFICATIONS_TABLE}] (
+                NotificationID INT IDENTITY(1,1) PRIMARY KEY,
+                Title NVARCHAR(150) NOT NULL,
+                Message NVARCHAR(500) NOT NULL,
+                Type NVARCHAR(20) NOT NULL DEFAULT 'info',
+                CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+                IsRead BIT NOT NULL DEFAULT 0
+            )
+        END`;
+
+    try {
+        await pool.request().query(createTableQuery);
+    } catch (err) {
+        console.error('Bildirim tablosu oluşturulamadı:', err.message);
+    }
+}
+
+async function createNotification({ type = 'info', title, message }) {
+    if (!pool || !title || !message) {
+        return;
+    }
+
+    try {
+        await pool.request()
+            .input('title', sql.NVarChar(150), title)
+            .input('message', sql.NVarChar(500), message)
+            .input('type', sql.NVarChar(20), type)
+            .query(`
+                INSERT INTO ${NOTIFICATIONS_TABLE} (Title, Message, Type)
+                VALUES (@title, @message, @type)
+            `);
+    } catch (err) {
+        console.error('Bildirim kaydedilemedi:', err.message);
+    }
+}
 
 async function connectDB() {
     try {
         pool = await sql.connect(config);
-        console.log('✓ تم الاتصال بقاعدة البيانات بنجاح');
-        console.log('✓ السيرفر: AHMET\\SQLEXPRESS03');
-        console.log('✓ قاعدة البيانات: IHH_Hayir');
+        console.log('✓ Veritabanına başarıyla bağlanıldı');
+        console.log('✓ Sunucu: IBOO');
+        console.log('✓ Veritabanı: IHH_Hayir');
+        await ensureNotificationTable();
     } catch (err) {
-        console.error('✗ خطأ في الاتصال بقاعدة البيانات:', err.message);
-        console.log('⚠ السيرفر سيعمل بدون قاعدة بيانات (وضع Demo فقط)');
+        console.error('✗ Veritabanına bağlanırken hata:', err.message);
+        console.log('⚠ Sunucu veritabanı olmadan (yalnızca demo modu) çalışacak');
     }
 }
 
 
 
 app.get('/api/dashboard/stats', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const result = await pool.request().query(`
             SELECT
@@ -60,14 +112,15 @@ app.get('/api/dashboard/stats', async (req, res) => {
 
         res.json(result.recordset[0]);
     } catch (err) {
-        console.error('خطأ في جلب الإحصائيات:', err);
-        res.status(500).json({ error: 'خطأ في جلب الإحصائيات' });
+        console.error('İstatistikler alınırken hata oluştu:', err);
+        res.status(500).json({ error: 'İstatistikler alınırken hata oluştu' });
     }
 });
 
 
 
 app.get('/api/donors', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const result = await pool.request().query(`
             SELECT
@@ -89,13 +142,14 @@ app.get('/api/donors', async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        console.error('خطأ في جلب المتبرعين:', err);
-        res.status(500).json({ error: 'خطأ في جلب المتبرعين' });
+        console.error('Bağışçılar alınırken hata oluştu:', err);
+        res.status(500).json({ error: 'Bağışçılar alınırken hata oluştu' });
     }
 });
 
 
 app.post('/api/donors', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const { firstName, lastName, phone, email, address, city, country, type } = req.body;
 
@@ -120,19 +174,26 @@ app.post('/api/donors', async (req, res) => {
                 SELECT SCOPE_IDENTITY() AS id;
             `);
 
+        await createNotification({
+            type: 'success',
+            title: 'Yeni Bağışçı',
+            message: `${firstName} ${lastName} bağışçı olarak eklendi`
+        });
+
         res.json({
             success: true,
             id: result.recordset[0].id,
-            message: 'تم إضافة المتبرع بنجاح'
+            message: 'Bağışçı başarıyla eklendi'
         });
     } catch (err) {
-        console.error('خطأ في إضافة المتبرع:', err);
-        res.status(500).json({ error: 'خطأ في إضافة المتبرع' });
+        console.error('Bağışçı eklenirken hata oluştu:', err);
+        res.status(500).json({ error: 'Bağışçı eklenirken hata oluştu' });
     }
 });
 
 
 app.put('/api/donors/:id', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const { id } = req.params;
         const { firstName, lastName, phone, email, address, city, country, type } = req.body;
@@ -161,15 +222,22 @@ app.put('/api/donors/:id', async (req, res) => {
                 WHERE DonorID = @id
             `);
 
-        res.json({ success: true, message: 'تم تحديث المتبرع بنجاح' });
+        await createNotification({
+            type: 'info',
+            title: 'Bağışçı Güncellemesi',
+            message: `ID ${id} numaralı bağışçı güncellendi`
+        });
+
+        res.json({ success: true, message: 'Bağışçı başarıyla güncellendi' });
     } catch (err) {
-        console.error('خطأ في تحديث المتبرع:', err);
-        res.status(500).json({ error: 'خطأ في تحديث المتبرع' });
+        console.error('Bağışçı güncellenirken hata oluştu:', err);
+        res.status(500).json({ error: 'Bağışçı güncellenirken hata oluştu' });
     }
 });
 
 
 app.delete('/api/donors/:id', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const { id } = req.params;
 
@@ -181,16 +249,23 @@ app.delete('/api/donors/:id', async (req, res) => {
                 WHERE DonorID = @id
             `);
 
-        res.json({ success: true, message: 'تم حذف المتبرع بنجاح' });
+        await createNotification({
+            type: 'warning',
+            title: 'Bağışçı Pasifleştirildi',
+            message: `ID ${id} numaralı bağışçı pasifleştirildi`
+        });
+
+        res.json({ success: true, message: 'Bağışçı başarıyla silindi' });
     } catch (err) {
-        console.error('خطأ في حذف المتبرع:', err);
-        res.status(500).json({ error: 'خطأ في حذف المتبرع' });
+        console.error('Bağışçı silinirken hata oluştu:', err);
+        res.status(500).json({ error: 'Bağışçı silinirken hata oluştu' });
     }
 });
 
 
 
 app.get('/api/donations', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const result = await pool.request().query(`
             SELECT
@@ -210,13 +285,14 @@ app.get('/api/donations', async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        console.error('خطأ في جلب التبرعات:', err);
-        res.status(500).json({ error: 'خطأ في جلب التبرعات' });
+        console.error('Bağış kayıtları alınırken hata oluştu:', err);
+        res.status(500).json({ error: 'Bağış kayıtları alınırken hata oluştu' });
     }
 });
 
 
 app.post('/api/donations', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const { donorId, branchId, amount, currency, type, paymentMethod, notes } = req.body;
 
@@ -240,20 +316,27 @@ app.post('/api/donations', async (req, res) => {
                 SELECT SCOPE_IDENTITY() AS id;
             `);
 
+        await createNotification({
+            type: 'success',
+            title: 'Yeni Bağış',
+            message: `${donorId} numaralı bağışçı için ${amount} ${currency || 'TRY'} tutarında bağış kaydedildi`
+        });
+
         res.json({
             success: true,
             id: result.recordset[0].id,
-            message: 'تم تسجيل التبرع بنجاح'
+            message: 'Bağış başarıyla kaydedildi'
         });
     } catch (err) {
-        console.error('خطأ في إضافة التبرع:', err);
-        res.status(500).json({ error: 'خطأ في إضافة التبرع' });
+        console.error('Bağış eklenirken hata oluştu:', err);
+        res.status(500).json({ error: 'Bağış eklenirken hata oluştu' });
     }
 });
 
 
 
 app.get('/api/beneficiaries', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const result = await pool.request().query(`
             SELECT
@@ -276,13 +359,14 @@ app.get('/api/beneficiaries', async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        console.error('خطأ في جلب المستفيدين:', err);
-        res.status(500).json({ error: 'خطأ في جلب المستفيدين' });
+        console.error('Yararlanıcılar alınırken hata oluştu:', err);
+        res.status(500).json({ error: 'Yararlanıcılar alınırken hata oluştu' });
     }
 });
 
 
 app.post('/api/beneficiaries', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const { firstName, lastName, phone, address, city, country, type, familySize, monthlyIncome } = req.body;
 
@@ -308,19 +392,26 @@ app.post('/api/beneficiaries', async (req, res) => {
                 SELECT SCOPE_IDENTITY() AS id;
             `);
 
+        await createNotification({
+            type: 'success',
+            title: 'Yeni Yararlanıcı',
+            message: `${firstName} ${lastName} yararlanıcı olarak eklendi`
+        });
+
         res.json({
             success: true,
             id: result.recordset[0].id,
-            message: 'تم إضافة المستفيد بنجاح'
+            message: 'Yararlanıcı başarıyla eklendi'
         });
     } catch (err) {
-        console.error('خطأ في إضافة المستفيد:', err);
-        res.status(500).json({ error: 'خطأ في إضافة المستفيد' });
+        console.error('Yararlanıcı eklenirken hata oluştu:', err);
+        res.status(500).json({ error: 'Yararlanıcı eklenirken hata oluştu' });
     }
 });
 
 
 app.put('/api/beneficiaries/:id', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const { id } = req.params;
         const { firstName, lastName, phone, address, city, country, type, familySize, monthlyIncome } = req.body;
@@ -351,15 +442,22 @@ app.put('/api/beneficiaries/:id', async (req, res) => {
                 WHERE BeneficiaryID = @id
             `);
 
-        res.json({ success: true, message: 'تم تحديث المستفيد بنجاح' });
+        await createNotification({
+            type: 'info',
+            title: 'Yararlanıcı Güncellemesi',
+            message: `ID ${id} numaralı yararlanıcı güncellendi`
+        });
+
+        res.json({ success: true, message: 'Yararlanıcı başarıyla güncellendi' });
     } catch (err) {
-        console.error('خطأ في تحديث المستفيد:', err);
-        res.status(500).json({ error: 'خطأ في تحديث المستفيد' });
+        console.error('Yararlanıcı güncellenirken hata oluştu:', err);
+        res.status(500).json({ error: 'Yararlanıcı güncellenirken hata oluştu' });
     }
 });
 
 
 app.delete('/api/beneficiaries/:id', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const { id } = req.params;
 
@@ -371,20 +469,27 @@ app.delete('/api/beneficiaries/:id', async (req, res) => {
                 WHERE BeneficiaryID = @id
             `);
 
-        res.json({ success: true, message: 'تم حذف المستفيد بنجاح' });
+        await createNotification({
+            type: 'warning',
+            title: 'Yararlanıcı Pasifleştirildi',
+            message: `ID ${id} numaralı yararlanıcı pasifleştirildi`
+        });
+
+        res.json({ success: true, message: 'Yararlanıcı başarıyla silindi' });
     } catch (err) {
-        console.error('خطأ في حذف المستفيد:', err);
-        res.status(500).json({ error: 'خطأ في حذف المستفيد' });
+        console.error('Yararlanıcı silinirken hata oluştu:', err);
+        res.status(500).json({ error: 'Yararlanıcı silinirken hata oluştu' });
     }
 });
 
 
 
 app.get('/api/aid-distributions', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const result = await pool.request().query(`
             SELECT
-                a.AidDistributionID as id,
+                a.DistributionID as id,
                 a.BeneficiaryID as beneficiaryId,
                 b.FirstName + ' ' + b.LastName as beneficiaryName,
                 at.AidTypeName as aidType,
@@ -400,13 +505,14 @@ app.get('/api/aid-distributions', async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        console.error('خطأ في جلب المساعدات:', err);
-        res.status(500).json({ error: 'خطأ في جلب المساعدات' });
+        console.error('Yardım dağıtımları alınırken hata oluştu:', err);
+        res.status(500).json({ error: 'Yardım dağıtımları alınırken hata oluştu' });
     }
 });
 
 
 app.post('/api/aid-distributions', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const { beneficiaryId, aidType, quantity, estimatedValue, notes } = req.body;
 
@@ -417,7 +523,7 @@ app.post('/api/aid-distributions', async (req, res) => {
             `);
 
         if (aidTypeResult.recordset.length === 0) {
-            return res.status(400).json({ error: 'نوع المساعدة غير صحيح' });
+            return res.status(400).json({ error: 'Geçersiz yardım türü seçildi' });
         }
 
         const aidTypeId = aidTypeResult.recordset[0].AidTypeID;
@@ -439,20 +545,27 @@ app.post('/api/aid-distributions', async (req, res) => {
                 SELECT SCOPE_IDENTITY() AS id;
             `);
 
+        await createNotification({
+            type: 'info',
+            title: 'Yardım Dağıtımı',
+            message: `${beneficiaryId} numaralı yararlanıcı için ${aidType} türünde yardım kaydedildi`
+        });
+
         res.json({
             success: true,
             id: result.recordset[0].id,
-            message: 'تم تسجيل المساعدة بنجاح'
+            message: 'Yardım kaydı başarıyla tamamlandı'
         });
     } catch (err) {
-        console.error('خطأ في إضافة المساعدة:', err);
-        res.status(500).json({ error: 'خطأ في إضافة المساعدة' });
+        console.error('Yardım kaydedilirken hata oluştu:', err);
+        res.status(500).json({ error: 'Yardım kaydedilirken hata oluştu' });
     }
 });
 
 
 
 app.get('/api/staff', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const result = await pool.request().query(`
             SELECT
@@ -463,7 +576,7 @@ app.get('/api/staff', async (req, res) => {
                 Email as email,
                 Position as position,
                 Department as department,
-                Salary as salary,
+                MonthlySalary as salary,
                 FORMAT(HireDate, 'dd/MM/yyyy') as hireDate,
                 IsActive as isActive
             FROM Staff
@@ -473,13 +586,14 @@ app.get('/api/staff', async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        console.error('خطأ في جلب الموظفين:', err);
-        res.status(500).json({ error: 'خطأ في جلب الموظفين' });
+        console.error('Personel listesi alınırken hata oluştu:', err);
+        res.status(500).json({ error: 'Personel listesi alınırken hata oluştu' });
     }
 });
 
 
 app.post('/api/staff', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const { firstName, lastName, phone, email, position, department, salary } = req.body;
 
@@ -489,12 +603,12 @@ app.post('/api/staff', async (req, res) => {
             .input('phone', sql.NVarChar(20), phone || null)
             .input('email', sql.NVarChar(100), email || null)
             .input('position', sql.NVarChar(50), position)
-            .input('department', sql.NVarChar(50), department)
+            .input('department', sql.NVarChar(50), department || null)
             .input('salary', sql.Decimal(18, 2), salary)
             .query(`
                 INSERT INTO Staff (
                     FirstName, LastName, PhoneNumber, Email,
-                    Position, Department, Salary, IsActive
+                    Position, Department, MonthlySalary, IsActive
                 )
                 VALUES (
                     @firstName, @lastName, @phone, @email,
@@ -503,19 +617,26 @@ app.post('/api/staff', async (req, res) => {
                 SELECT SCOPE_IDENTITY() AS id;
             `);
 
+        await createNotification({
+            type: 'success',
+            title: 'Yeni Personel',
+            message: `${firstName} ${lastName} personel olarak eklendi`
+        });
+
         res.json({
             success: true,
             id: result.recordset[0].id,
-            message: 'تم إضافة الموظف بنجاح'
+            message: 'Personel başarıyla eklendi'
         });
     } catch (err) {
-        console.error('خطأ في إضافة الموظف:', err);
-        res.status(500).json({ error: 'خطأ في إضافة الموظف' });
+        console.error('Personel eklenirken hata oluştu:', err);
+        res.status(500).json({ error: 'Personel eklenirken hata oluştu' });
     }
 });
 
 
 app.put('/api/staff/:id', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const { id } = req.params;
         const { firstName, lastName, phone, email, position, department, salary } = req.body;
@@ -527,7 +648,7 @@ app.put('/api/staff/:id', async (req, res) => {
             .input('phone', sql.NVarChar(20), phone)
             .input('email', sql.NVarChar(100), email)
             .input('position', sql.NVarChar(50), position)
-            .input('department', sql.NVarChar(50), department)
+            .input('department', sql.NVarChar(50), department || null)
             .input('salary', sql.Decimal(18, 2), salary)
             .query(`
                 UPDATE Staff
@@ -538,19 +659,26 @@ app.put('/api/staff/:id', async (req, res) => {
                     Email = @email,
                     Position = @position,
                     Department = @department,
-                    Salary = @salary
+                    MonthlySalary = @salary
                 WHERE StaffID = @id
             `);
 
-        res.json({ success: true, message: 'تم تحديث الموظف بنجاح' });
+        await createNotification({
+            type: 'info',
+            title: 'Personel Güncellemesi',
+            message: `ID ${id} numaralı personel güncellendi`
+        });
+
+        res.json({ success: true, message: 'Personel başarıyla güncellendi' });
     } catch (err) {
-        console.error('خطأ في تحديث الموظف:', err);
-        res.status(500).json({ error: 'خطأ في تحديث الموظف' });
+        console.error('Personel güncellenirken hata oluştu:', err);
+        res.status(500).json({ error: 'Personel güncellenirken hata oluştu' });
     }
 });
 
 
 app.delete('/api/staff/:id', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const { id } = req.params;
 
@@ -562,16 +690,23 @@ app.delete('/api/staff/:id', async (req, res) => {
                 WHERE StaffID = @id
             `);
 
-        res.json({ success: true, message: 'تم حذف الموظف بنجاح' });
+        await createNotification({
+            type: 'warning',
+            title: 'Personel Pasifleştirildi',
+            message: `ID ${id} numaralı personel pasifleştirildi`
+        });
+
+        res.json({ success: true, message: 'Personel başarıyla silindi' });
     } catch (err) {
-        console.error('خطأ في حذف الموظف:', err);
-        res.status(500).json({ error: 'خطأ في حذف الموظف' });
+        console.error('Personel silinirken hata oluştu:', err);
+        res.status(500).json({ error: 'Personel silinirken hata oluştu' });
     }
 });
 
 
 
 app.get('/api/sponsorships', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const result = await pool.request().query(`
             SELECT
@@ -592,13 +727,14 @@ app.get('/api/sponsorships', async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        console.error('خطأ في جلب الكفالات:', err);
-        res.status(500).json({ error: 'خطأ في جلب الكفالات' });
+        console.error('Sponsorluklar alınırken hata oluştu:', err);
+        res.status(500).json({ error: 'Sponsorluklar alınırken hata oluştu' });
     }
 });
 
 
 app.post('/api/sponsorships', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const { donorId, beneficiaryId, monthlyAmount, paymentFrequency } = req.body;
 
@@ -617,20 +753,27 @@ app.post('/api/sponsorships', async (req, res) => {
                 SELECT SCOPE_IDENTITY() AS id;
             `);
 
+        await createNotification({
+            type: 'success',
+            title: 'Yeni Sponsorluk',
+            message: `${donorId} numaralı bağışçı için sponsorluk kaydedildi`
+        });
+
         res.json({
             success: true,
             id: result.recordset[0].id,
-            message: 'تم تسجيل الكفالة بنجاح'
+            message: 'Sponsorluk başarıyla kaydedildi'
         });
     } catch (err) {
-        console.error('خطأ في إضافة الكفالة:', err);
-        res.status(500).json({ error: 'خطأ في إضافة الكفالة' });
+        console.error('Sponsorluk eklenirken hata oluştu:', err);
+        res.status(500).json({ error: 'Sponsorluk eklenirken hata oluştu' });
     }
 });
 
 
 
 app.get('/api/reports', async (req, res) => {
+    if (!ensurePool(res)) return;
     try {
         const statsResult = await pool.request().query(`
             SELECT
@@ -655,7 +798,7 @@ app.get('/api/reports', async (req, res) => {
         const aidByTypeResult = await pool.request().query(`
             SELECT
                 at.AidTypeName as aidType,
-                COUNT(ad.AidDistributionID) as count,
+                COUNT(ad.DistributionID) as count,
                 ISNULL(SUM(ad.EstimatedValue), 0) as totalValue
             FROM AidTypes at
             LEFT JOIN AidDistribution ad ON at.AidTypeID = ad.AidTypeID
@@ -669,8 +812,68 @@ app.get('/api/reports', async (req, res) => {
             aidByType: aidByTypeResult.recordset
         });
     } catch (err) {
-        console.error('خطأ في جلب التقارير:', err);
-        res.status(500).json({ error: 'خطأ في جلب التقارير' });
+        console.error('Raporlar alınırken hata oluştu:', err);
+        res.status(500).json({ error: 'Raporlar alınırken hata oluştu' });
+    }
+});
+
+
+app.get('/api/notifications', async (req, res) => {
+    if (!ensurePool(res)) return;
+    try {
+        const result = await pool.request().query(`
+            SELECT TOP (20)
+                NotificationID as id,
+                Title as title,
+                Message as message,
+                Type as type,
+                IsRead as isRead,
+                CreatedAt as createdAt
+            FROM ${NOTIFICATIONS_TABLE}
+            ORDER BY CreatedAt DESC
+        `);
+
+        res.json(result.recordset);
+    } catch (err) {
+        console.error('Bildirimler alınırken hata oluştu:', err);
+        res.status(500).json({ error: 'Bildirimler alınırken hata oluştu' });
+    }
+});
+
+
+app.post('/api/notifications/:id/read', async (req, res) => {
+    if (!ensurePool(res)) return;
+    try {
+        const { id } = req.params;
+        await pool.request()
+            .input('id', sql.Int, id)
+            .query(`
+                UPDATE ${NOTIFICATIONS_TABLE}
+                SET IsRead = 1
+                WHERE NotificationID = @id
+            `);
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Bildirim durumu güncellenirken hata oluştu:', err);
+        res.status(500).json({ error: 'Bildirim durumu güncellenirken hata oluştu' });
+    }
+});
+
+
+app.post('/api/notifications/read-all', async (req, res) => {
+    if (!ensurePool(res)) return;
+    try {
+        await pool.request().query(`
+            UPDATE ${NOTIFICATIONS_TABLE}
+            SET IsRead = 1
+            WHERE IsRead = 0
+        `);
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Bildirimler güncellenirken hata oluştu:', err);
+        res.status(500).json({ error: 'Bildirimler güncellenirken hata oluştu' });
     }
 });
 
@@ -678,21 +881,21 @@ app.get('/api/reports', async (req, res) => {
 connectDB().then(() => {
     app.listen(PORT, () => {
         console.log(`\n========================================`);
-        console.log(`🚀 سيرفر IHH يعمل على المنفذ ${PORT}`);
-        console.log(`🌐 افتح المتصفح على: http://localhost:${PORT}`);
+        console.log(`🚀 IHH sunucusu ${PORT} portunda çalışıyor`);
+        console.log(`🌐 Tarayıcıda aç: http://localhost:${PORT}`);
         console.log(`========================================\n`);
     });
 }).catch(err => {
-    console.error('فشل بدء السيرفر:', err);
+    console.error('Sunucu başlatılırken hata oluştu:', err);
     process.exit(1);
 });
 
 process.on('SIGINT', async () => {
-    console.log('\n\n⏳ إيقاف السيرفر...');
+    console.log('\n\n⏳ Sunucu kapatılıyor...');
     if (pool) {
         await pool.close();
-        console.log('✓ تم إغلاق اتصال قاعدة البيانات');
+        console.log('✓ Veritabanı bağlantısı kapatıldı');
     }
-    console.log('✓ تم إيقاف السيرفر بنجاح\n');
+    console.log('✓ Sunucu başarıyla durduruldu\n');
     process.exit(0);
 });

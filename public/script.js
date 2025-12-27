@@ -6,7 +6,8 @@ let staff = [];
 let sponsorships = [];
 let notifications = [];
 
-const API_BASE_URL = 'http://localhost:3000/api';
+// Use relative URL for API (works both locally and on production)
+const API_BASE_URL = '/api';
 
 const AUTH_FLAG_KEY = 'ihhAdminAuthed';
 

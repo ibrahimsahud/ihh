@@ -1,37 +1,23 @@
-
-
 const express = require('express');
-const sql = require('mssql');
+const { Pool } = require('pg');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-const config = {
-    user: 'ihhuser',
-    password: 'IHH@2025',
-    server: 'IBOO',
-    database: 'IHH_Hayir',
-    options: {
-        encrypt: true,
-        trustServerCertificate: true,
-        enableArithAbort: true
-    },
-    pool: {
-        max: 10,
-        min: 0,
-        idleTimeoutMillis: 30000
-    }
-};
+// PostgreSQL connection using DATABASE_URL from Render
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
-let pool;
-const NOTIFICATIONS_TABLE = 'SystemNotifications';
+const NOTIFICATIONS_TABLE = 'systemnotifications';
 
 function ensurePool(res) {
     if (!pool) {
@@ -42,41 +28,31 @@ function ensurePool(res) {
 }
 
 async function ensureNotificationTable() {
-    if (!pool) return;
     const createTableQuery = `
-        IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[${NOTIFICATIONS_TABLE}]') AND type = 'U')
-        BEGIN
-            CREATE TABLE [dbo].[${NOTIFICATIONS_TABLE}] (
-                NotificationID INT IDENTITY(1,1) PRIMARY KEY,
-                Title NVARCHAR(150) NOT NULL,
-                Message NVARCHAR(500) NOT NULL,
-                Type NVARCHAR(20) NOT NULL DEFAULT 'info',
-                CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
-                IsRead BIT NOT NULL DEFAULT 0
-            )
-        END`;
+        CREATE TABLE IF NOT EXISTS ${NOTIFICATIONS_TABLE} (
+            notificationid SERIAL PRIMARY KEY,
+            title VARCHAR(150) NOT NULL,
+            message VARCHAR(500) NOT NULL,
+            type VARCHAR(20) NOT NULL DEFAULT 'info',
+            createdat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            isread BOOLEAN NOT NULL DEFAULT FALSE
+        )`;
 
     try {
-        await pool.request().query(createTableQuery);
+        await pool.query(createTableQuery);
     } catch (err) {
         console.error('Bildirim tablosu oluşturulamadı:', err.message);
     }
 }
 
 async function createNotification({ type = 'info', title, message }) {
-    if (!pool || !title || !message) {
-        return;
-    }
+    if (!title || !message) return;
 
     try {
-        await pool.request()
-            .input('title', sql.NVarChar(150), title)
-            .input('message', sql.NVarChar(500), message)
-            .input('type', sql.NVarChar(20), type)
-            .query(`
-                INSERT INTO ${NOTIFICATIONS_TABLE} (Title, Message, Type)
-                VALUES (@title, @message, @type)
-            `);
+        await pool.query(
+            `INSERT INTO ${NOTIFICATIONS_TABLE} (title, message, type) VALUES ($1, $2, $3)`,
+            [title, message, type]
+        );
     } catch (err) {
         console.error('Bildirim kaydedilemedi:', err.message);
     }
@@ -84,95 +60,85 @@ async function createNotification({ type = 'info', title, message }) {
 
 async function connectDB() {
     try {
-        pool = await sql.connect(config);
-        console.log('✓ Veritabanına başarıyla bağlanıldı');
-        console.log('✓ Sunucu: IBOO');
-        console.log('✓ Veritabanı: IHH_Hayir');
+        const client = await pool.connect();
+        console.log('✓ PostgreSQL veritabanına başarıyla bağlanıldı');
+        client.release();
         await ensureNotificationTable();
     } catch (err) {
         console.error('✗ Veritabanına bağlanırken hata:', err.message);
-        console.log('⚠ Sunucu veritabanı olmadan (yalnızca demo modu) çalışacak');
+        console.log('⚠ Sunucu veritabanı olmadan çalışacak');
     }
 }
 
-
-
+// Dashboard Stats
 app.get('/api/dashboard/stats', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
-        const result = await pool.request().query(`
+        const result = await pool.query(`
             SELECT
-                (SELECT COUNT(*) FROM Donors WHERE IsActive = 1) as totalDonors,
-                (SELECT COUNT(*) FROM Donations) as totalDonations,
-                (SELECT COUNT(*) FROM Beneficiaries WHERE IsActive = 1) as totalBeneficiaries,
-                (SELECT COUNT(*) FROM Staff WHERE IsActive = 1) as totalStaff,
-                (SELECT ISNULL(SUM(DonationAmount), 0) FROM Donations) as totalDonationAmount,
-                (SELECT COUNT(*) FROM AidDistribution) as totalAidDistributions
+                (SELECT COUNT(*) FROM donors WHERE isactive = true) as totaldonors,
+                (SELECT COUNT(*) FROM donations) as totaldonations,
+                (SELECT COUNT(*) FROM beneficiaries WHERE isactive = true) as totalbeneficiaries,
+                (SELECT COUNT(*) FROM staff WHERE isactive = true) as totalstaff,
+                (SELECT COALESCE(SUM(donationamount), 0) FROM donations) as totaldonationamount,
+                (SELECT COUNT(*) FROM aiddistribution) as totalaiddistributions
         `);
 
-        res.json(result.recordset[0]);
+        const row = result.rows[0];
+        res.json({
+            totalDonors: parseInt(row.totaldonors),
+            totalDonations: parseInt(row.totaldonations),
+            totalBeneficiaries: parseInt(row.totalbeneficiaries),
+            totalStaff: parseInt(row.totalstaff),
+            totalDonationAmount: parseFloat(row.totaldonationamount),
+            totalAidDistributions: parseInt(row.totalaiddistributions)
+        });
     } catch (err) {
         console.error('İstatistikler alınırken hata oluştu:', err);
         res.status(500).json({ error: 'İstatistikler alınırken hata oluştu' });
     }
 });
 
-
-
+// Donors
 app.get('/api/donors', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
-        const result = await pool.request().query(`
+        const result = await pool.query(`
             SELECT
-                DonorID as id,
-                FirstName as firstName,
-                LastName as lastName,
-                PhoneNumber as phone,
-                Email as email,
-                Address as address,
-                City as city,
-                Country as country,
-                DonorType as type,
-                FORMAT(RegistrationDate, 'dd/MM/yyyy') as date,
-                IsActive as isActive
-            FROM Donors
-            WHERE IsActive = 1
-            ORDER BY RegistrationDate DESC
+                donorid as id,
+                firstname as "firstName",
+                lastname as "lastName",
+                phonenumber as phone,
+                email,
+                address,
+                city,
+                country,
+                donortype as type,
+                TO_CHAR(registrationdate, 'DD/MM/YYYY') as date,
+                isactive as "isActive"
+            FROM donors
+            WHERE isactive = true
+            ORDER BY registrationdate DESC
         `);
 
-        res.json(result.recordset);
+        res.json(result.rows);
     } catch (err) {
         console.error('Bağışçılar alınırken hata oluştu:', err);
         res.status(500).json({ error: 'Bağışçılar alınırken hata oluştu' });
     }
 });
 
-
 app.post('/api/donors', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
         const { firstName, lastName, phone, email, address, city, country, type } = req.body;
 
-        const result = await pool.request()
-            .input('firstName', sql.NVarChar(50), firstName)
-            .input('lastName', sql.NVarChar(50), lastName)
-            .input('phone', sql.NVarChar(20), phone || null)
-            .input('email', sql.NVarChar(100), email || null)
-            .input('address', sql.NVarChar(200), address || null)
-            .input('city', sql.NVarChar(50), city || null)
-            .input('country', sql.NVarChar(50), country || 'Turkey')
-            .input('type', sql.NVarChar(20), type)
-            .query(`
-                INSERT INTO Donors (
-                    FirstName, LastName, PhoneNumber, Email,
-                    Address, City, Country, DonorType, IsActive
-                )
-                VALUES (
-                    @firstName, @lastName, @phone, @email,
-                    @address, @city, @country, @type, 1
-                );
-                SELECT SCOPE_IDENTITY() AS id;
-            `);
+        const result = await pool.query(
+            `INSERT INTO donors (firstname, lastname, phonenumber, email, address, city, country, donortype, isactive)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
+             RETURNING donorid as id`,
+            [firstName, lastName, phone || null, email || null, address || null, city || null, country || 'Turkey', type]
+        );
 
         await createNotification({
             type: 'success',
@@ -182,7 +148,7 @@ app.post('/api/donors', async (req, res) => {
 
         res.json({
             success: true,
-            id: result.recordset[0].id,
+            id: result.rows[0].id,
             message: 'Bağışçı başarıyla eklendi'
         });
     } catch (err) {
@@ -191,36 +157,19 @@ app.post('/api/donors', async (req, res) => {
     }
 });
 
-
 app.put('/api/donors/:id', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
         const { id } = req.params;
         const { firstName, lastName, phone, email, address, city, country, type } = req.body;
 
-        await pool.request()
-            .input('id', sql.Int, id)
-            .input('firstName', sql.NVarChar(50), firstName)
-            .input('lastName', sql.NVarChar(50), lastName)
-            .input('phone', sql.NVarChar(20), phone)
-            .input('email', sql.NVarChar(100), email)
-            .input('address', sql.NVarChar(200), address)
-            .input('city', sql.NVarChar(50), city)
-            .input('country', sql.NVarChar(50), country)
-            .input('type', sql.NVarChar(20), type)
-            .query(`
-                UPDATE Donors
-                SET
-                    FirstName = @firstName,
-                    LastName = @lastName,
-                    PhoneNumber = @phone,
-                    Email = @email,
-                    Address = @address,
-                    City = @city,
-                    Country = @country,
-                    DonorType = @type
-                WHERE DonorID = @id
-            `);
+        await pool.query(
+            `UPDATE donors SET
+                firstname = $1, lastname = $2, phonenumber = $3, email = $4,
+                address = $5, city = $6, country = $7, donortype = $8
+             WHERE donorid = $9`,
+            [firstName, lastName, phone, email, address, city, country, type, id]
+        );
 
         await createNotification({
             type: 'info',
@@ -235,19 +184,12 @@ app.put('/api/donors/:id', async (req, res) => {
     }
 });
 
-
 app.delete('/api/donors/:id', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
         const { id } = req.params;
 
-        await pool.request()
-            .input('id', sql.Int, id)
-            .query(`
-                UPDATE Donors
-                SET IsActive = 0
-                WHERE DonorID = @id
-            `);
+        await pool.query('UPDATE donors SET isactive = false WHERE donorid = $1', [id]);
 
         await createNotification({
             type: 'warning',
@@ -262,59 +204,44 @@ app.delete('/api/donors/:id', async (req, res) => {
     }
 });
 
-
-
+// Donations
 app.get('/api/donations', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
-        const result = await pool.request().query(`
+        const result = await pool.query(`
             SELECT
-                d.DonationID as id,
-                d.DonorID as donorId,
-                donor.FirstName + ' ' + donor.LastName as donorName,
-                d.DonationAmount as amount,
-                d.DonationCurrency as currency,
-                d.DonationType as type,
-                d.PaymentMethod as paymentMethod,
-                d.Notes as notes,
-                FORMAT(d.DonationDate, 'dd/MM/yyyy') as date
-            FROM Donations d
-            INNER JOIN Donors donor ON d.DonorID = donor.DonorID
-            ORDER BY d.DonationDate DESC
+                d.donationid as id,
+                d.donorid as "donorId",
+                donor.firstname || ' ' || donor.lastname as "donorName",
+                d.donationamount as amount,
+                d.donationcurrency as currency,
+                d.donationtype as type,
+                d.paymentmethod as "paymentMethod",
+                d.notes,
+                TO_CHAR(d.donationdate, 'DD/MM/YYYY') as date
+            FROM donations d
+            INNER JOIN donors donor ON d.donorid = donor.donorid
+            ORDER BY d.donationdate DESC
         `);
 
-        res.json(result.recordset);
+        res.json(result.rows);
     } catch (err) {
         console.error('Bağış kayıtları alınırken hata oluştu:', err);
         res.status(500).json({ error: 'Bağış kayıtları alınırken hata oluştu' });
     }
 });
 
-
 app.post('/api/donations', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
         const { donorId, branchId, amount, currency, type, paymentMethod, notes } = req.body;
 
-        const result = await pool.request()
-            .input('donorId', sql.Int, donorId)
-            .input('branchId', sql.Int, branchId || 1)
-            .input('amount', sql.Decimal(18, 2), amount)
-            .input('currency', sql.NVarChar(10), currency || 'TRY')
-            .input('type', sql.NVarChar(20), type)
-            .input('paymentMethod', sql.NVarChar(20), paymentMethod)
-            .input('notes', sql.NVarChar(500), notes || null)
-            .query(`
-                INSERT INTO Donations (
-                    DonorID, BranchID, DonationAmount, DonationCurrency,
-                    DonationType, PaymentMethod, Notes
-                )
-                VALUES (
-                    @donorId, @branchId, @amount, @currency,
-                    @type, @paymentMethod, @notes
-                );
-                SELECT SCOPE_IDENTITY() AS id;
-            `);
+        const result = await pool.query(
+            `INSERT INTO donations (donorid, branchid, donationamount, donationcurrency, donationtype, paymentmethod, notes)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             RETURNING donationid as id`,
+            [donorId, branchId || 1, amount, currency || 'TRY', type, paymentMethod, notes || null]
+        );
 
         await createNotification({
             type: 'success',
@@ -324,7 +251,7 @@ app.post('/api/donations', async (req, res) => {
 
         res.json({
             success: true,
-            id: result.recordset[0].id,
+            id: result.rows[0].id,
             message: 'Bağış başarıyla kaydedildi'
         });
     } catch (err) {
@@ -333,64 +260,47 @@ app.post('/api/donations', async (req, res) => {
     }
 });
 
-
-
+// Beneficiaries
 app.get('/api/beneficiaries', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
-        const result = await pool.request().query(`
+        const result = await pool.query(`
             SELECT
-                BeneficiaryID as id,
-                FirstName as firstName,
-                LastName as lastName,
-                PhoneNumber as phone,
-                Address as address,
-                City as city,
-                Country as country,
-                BeneficiaryType as type,
-                FamilySize as familySize,
-                MonthlyIncome as monthlyIncome,
-                FORMAT(RegistrationDate, 'dd/MM/yyyy') as date,
-                IsActive as isActive
-            FROM Beneficiaries
-            WHERE IsActive = 1
-            ORDER BY RegistrationDate DESC
+                beneficiaryid as id,
+                firstname as "firstName",
+                lastname as "lastName",
+                phonenumber as phone,
+                address,
+                city,
+                country,
+                beneficiarytype as type,
+                familysize as "familySize",
+                monthlyincome as "monthlyIncome",
+                TO_CHAR(registrationdate, 'DD/MM/YYYY') as date,
+                isactive as "isActive"
+            FROM beneficiaries
+            WHERE isactive = true
+            ORDER BY registrationdate DESC
         `);
 
-        res.json(result.recordset);
+        res.json(result.rows);
     } catch (err) {
         console.error('Yararlanıcılar alınırken hata oluştu:', err);
         res.status(500).json({ error: 'Yararlanıcılar alınırken hata oluştu' });
     }
 });
 
-
 app.post('/api/beneficiaries', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
         const { firstName, lastName, phone, address, city, country, type, familySize, monthlyIncome } = req.body;
 
-        const result = await pool.request()
-            .input('firstName', sql.NVarChar(50), firstName)
-            .input('lastName', sql.NVarChar(50), lastName)
-            .input('phone', sql.NVarChar(20), phone || null)
-            .input('address', sql.NVarChar(200), address || null)
-            .input('city', sql.NVarChar(50), city || null)
-            .input('country', sql.NVarChar(50), country || 'Turkey')
-            .input('type', sql.NVarChar(20), type)
-            .input('familySize', sql.Int, familySize || 1)
-            .input('monthlyIncome', sql.Decimal(18, 2), monthlyIncome || 0)
-            .query(`
-                INSERT INTO Beneficiaries (
-                    FirstName, LastName, PhoneNumber, Address,
-                    City, Country, BeneficiaryType, FamilySize, MonthlyIncome, IsActive
-                )
-                VALUES (
-                    @firstName, @lastName, @phone, @address,
-                    @city, @country, @type, @familySize, @monthlyIncome, 1
-                );
-                SELECT SCOPE_IDENTITY() AS id;
-            `);
+        const result = await pool.query(
+            `INSERT INTO beneficiaries (firstname, lastname, phonenumber, address, city, country, beneficiarytype, familysize, monthlyincome, isactive)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
+             RETURNING beneficiaryid as id`,
+            [firstName, lastName, phone || null, address || null, city || null, country || 'Turkey', type, familySize || 1, monthlyIncome || 0]
+        );
 
         await createNotification({
             type: 'success',
@@ -400,7 +310,7 @@ app.post('/api/beneficiaries', async (req, res) => {
 
         res.json({
             success: true,
-            id: result.recordset[0].id,
+            id: result.rows[0].id,
             message: 'Yararlanıcı başarıyla eklendi'
         });
     } catch (err) {
@@ -409,38 +319,19 @@ app.post('/api/beneficiaries', async (req, res) => {
     }
 });
 
-
 app.put('/api/beneficiaries/:id', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
         const { id } = req.params;
         const { firstName, lastName, phone, address, city, country, type, familySize, monthlyIncome } = req.body;
 
-        await pool.request()
-            .input('id', sql.Int, id)
-            .input('firstName', sql.NVarChar(50), firstName)
-            .input('lastName', sql.NVarChar(50), lastName)
-            .input('phone', sql.NVarChar(20), phone)
-            .input('address', sql.NVarChar(200), address)
-            .input('city', sql.NVarChar(50), city)
-            .input('country', sql.NVarChar(50), country)
-            .input('type', sql.NVarChar(20), type)
-            .input('familySize', sql.Int, familySize)
-            .input('monthlyIncome', sql.Decimal(18, 2), monthlyIncome)
-            .query(`
-                UPDATE Beneficiaries
-                SET
-                    FirstName = @firstName,
-                    LastName = @lastName,
-                    PhoneNumber = @phone,
-                    Address = @address,
-                    City = @city,
-                    Country = @country,
-                    BeneficiaryType = @type,
-                    FamilySize = @familySize,
-                    MonthlyIncome = @monthlyIncome
-                WHERE BeneficiaryID = @id
-            `);
+        await pool.query(
+            `UPDATE beneficiaries SET
+                firstname = $1, lastname = $2, phonenumber = $3, address = $4,
+                city = $5, country = $6, beneficiarytype = $7, familysize = $8, monthlyincome = $9
+             WHERE beneficiaryid = $10`,
+            [firstName, lastName, phone, address, city, country, type, familySize, monthlyIncome, id]
+        );
 
         await createNotification({
             type: 'info',
@@ -455,19 +346,12 @@ app.put('/api/beneficiaries/:id', async (req, res) => {
     }
 });
 
-
 app.delete('/api/beneficiaries/:id', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
         const { id } = req.params;
 
-        await pool.request()
-            .input('id', sql.Int, id)
-            .query(`
-                UPDATE Beneficiaries
-                SET IsActive = 0
-                WHERE BeneficiaryID = @id
-            `);
+        await pool.query('UPDATE beneficiaries SET isactive = false WHERE beneficiaryid = $1', [id]);
 
         await createNotification({
             type: 'warning',
@@ -482,68 +366,55 @@ app.delete('/api/beneficiaries/:id', async (req, res) => {
     }
 });
 
-
-
+// Aid Distributions
 app.get('/api/aid-distributions', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
-        const result = await pool.request().query(`
+        const result = await pool.query(`
             SELECT
-                a.DistributionID as id,
-                a.BeneficiaryID as beneficiaryId,
-                b.FirstName + ' ' + b.LastName as beneficiaryName,
-                at.AidTypeName as aidType,
-                a.Quantity as quantity,
-                a.EstimatedValue as estimatedValue,
-                a.Notes as notes,
-                FORMAT(a.DistributionDate, 'dd/MM/yyyy') as date
-            FROM AidDistribution a
-            INNER JOIN Beneficiaries b ON a.BeneficiaryID = b.BeneficiaryID
-            INNER JOIN AidTypes at ON a.AidTypeID = at.AidTypeID
-            ORDER BY a.DistributionDate DESC
+                a.distributionid as id,
+                a.beneficiaryid as "beneficiaryId",
+                b.firstname || ' ' || b.lastname as "beneficiaryName",
+                at.aidtypename as "aidType",
+                a.quantity,
+                a.estimatedvalue as "estimatedValue",
+                a.notes,
+                TO_CHAR(a.distributiondate, 'DD/MM/YYYY') as date
+            FROM aiddistribution a
+            INNER JOIN beneficiaries b ON a.beneficiaryid = b.beneficiaryid
+            INNER JOIN aidtypes at ON a.aidtypeid = at.aidtypeid
+            ORDER BY a.distributiondate DESC
         `);
 
-        res.json(result.recordset);
+        res.json(result.rows);
     } catch (err) {
         console.error('Yardım dağıtımları alınırken hata oluştu:', err);
         res.status(500).json({ error: 'Yardım dağıtımları alınırken hata oluştu' });
     }
 });
 
-
 app.post('/api/aid-distributions', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
         const { beneficiaryId, aidType, quantity, estimatedValue, notes } = req.body;
 
-        const aidTypeResult = await pool.request()
-            .input('aidType', sql.NVarChar(50), aidType)
-            .query(`
-                SELECT AidTypeID FROM AidTypes WHERE AidTypeName = @aidType
-            `);
+        const aidTypeResult = await pool.query(
+            'SELECT aidtypeid FROM aidtypes WHERE aidtypename = $1',
+            [aidType]
+        );
 
-        if (aidTypeResult.recordset.length === 0) {
+        if (aidTypeResult.rows.length === 0) {
             return res.status(400).json({ error: 'Geçersiz yardım türü seçildi' });
         }
 
-        const aidTypeId = aidTypeResult.recordset[0].AidTypeID;
+        const aidTypeId = aidTypeResult.rows[0].aidtypeid;
 
-        const result = await pool.request()
-            .input('beneficiaryId', sql.Int, beneficiaryId)
-            .input('branchId', sql.Int, 1)
-            .input('aidTypeId', sql.Int, aidTypeId)
-            .input('quantity', sql.Int, quantity)
-            .input('estimatedValue', sql.Decimal(18, 2), estimatedValue || null)
-            .input('notes', sql.NVarChar(500), notes || null)
-            .query(`
-                INSERT INTO AidDistribution (
-                    BeneficiaryID, BranchID, AidTypeID, Quantity, EstimatedValue, Notes
-                )
-                VALUES (
-                    @beneficiaryId, @branchId, @aidTypeId, @quantity, @estimatedValue, @notes
-                );
-                SELECT SCOPE_IDENTITY() AS id;
-            `);
+        const result = await pool.query(
+            `INSERT INTO aiddistribution (beneficiaryid, branchid, aidtypeid, quantity, estimatedvalue, notes)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING distributionid as id`,
+            [beneficiaryId, 1, aidTypeId, quantity, estimatedValue || null, notes || null]
+        );
 
         await createNotification({
             type: 'info',
@@ -553,7 +424,7 @@ app.post('/api/aid-distributions', async (req, res) => {
 
         res.json({
             success: true,
-            id: result.recordset[0].id,
+            id: result.rows[0].id,
             message: 'Yardım kaydı başarıyla tamamlandı'
         });
     } catch (err) {
@@ -562,60 +433,45 @@ app.post('/api/aid-distributions', async (req, res) => {
     }
 });
 
-
-
+// Staff
 app.get('/api/staff', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
-        const result = await pool.request().query(`
+        const result = await pool.query(`
             SELECT
-                StaffID as id,
-                FirstName as firstName,
-                LastName as lastName,
-                PhoneNumber as phone,
-                Email as email,
-                Position as position,
-                Department as department,
-                MonthlySalary as salary,
-                FORMAT(HireDate, 'dd/MM/yyyy') as hireDate,
-                IsActive as isActive
-            FROM Staff
-            WHERE IsActive = 1
-            ORDER BY HireDate DESC
+                staffid as id,
+                firstname as "firstName",
+                lastname as "lastName",
+                phonenumber as phone,
+                email,
+                position,
+                department,
+                monthlysalary as salary,
+                TO_CHAR(hiredate, 'DD/MM/YYYY') as "hireDate",
+                isactive as "isActive"
+            FROM staff
+            WHERE isactive = true
+            ORDER BY hiredate DESC
         `);
 
-        res.json(result.recordset);
+        res.json(result.rows);
     } catch (err) {
         console.error('Personel listesi alınırken hata oluştu:', err);
         res.status(500).json({ error: 'Personel listesi alınırken hata oluştu' });
     }
 });
 
-
 app.post('/api/staff', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
         const { firstName, lastName, phone, email, position, department, salary } = req.body;
 
-        const result = await pool.request()
-            .input('firstName', sql.NVarChar(50), firstName)
-            .input('lastName', sql.NVarChar(50), lastName)
-            .input('phone', sql.NVarChar(20), phone || null)
-            .input('email', sql.NVarChar(100), email || null)
-            .input('position', sql.NVarChar(50), position)
-            .input('department', sql.NVarChar(50), department || null)
-            .input('salary', sql.Decimal(18, 2), salary)
-            .query(`
-                INSERT INTO Staff (
-                    FirstName, LastName, PhoneNumber, Email,
-                    Position, Department, MonthlySalary, IsActive
-                )
-                VALUES (
-                    @firstName, @lastName, @phone, @email,
-                    @position, @department, @salary, 1
-                );
-                SELECT SCOPE_IDENTITY() AS id;
-            `);
+        const result = await pool.query(
+            `INSERT INTO staff (firstname, lastname, phonenumber, email, position, department, monthlysalary, isactive)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+             RETURNING staffid as id`,
+            [firstName, lastName, phone || null, email || null, position, department || null, salary]
+        );
 
         await createNotification({
             type: 'success',
@@ -625,7 +481,7 @@ app.post('/api/staff', async (req, res) => {
 
         res.json({
             success: true,
-            id: result.recordset[0].id,
+            id: result.rows[0].id,
             message: 'Personel başarıyla eklendi'
         });
     } catch (err) {
@@ -634,34 +490,19 @@ app.post('/api/staff', async (req, res) => {
     }
 });
 
-
 app.put('/api/staff/:id', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
         const { id } = req.params;
         const { firstName, lastName, phone, email, position, department, salary } = req.body;
 
-        await pool.request()
-            .input('id', sql.Int, id)
-            .input('firstName', sql.NVarChar(50), firstName)
-            .input('lastName', sql.NVarChar(50), lastName)
-            .input('phone', sql.NVarChar(20), phone)
-            .input('email', sql.NVarChar(100), email)
-            .input('position', sql.NVarChar(50), position)
-            .input('department', sql.NVarChar(50), department || null)
-            .input('salary', sql.Decimal(18, 2), salary)
-            .query(`
-                UPDATE Staff
-                SET
-                    FirstName = @firstName,
-                    LastName = @lastName,
-                    PhoneNumber = @phone,
-                    Email = @email,
-                    Position = @position,
-                    Department = @department,
-                    MonthlySalary = @salary
-                WHERE StaffID = @id
-            `);
+        await pool.query(
+            `UPDATE staff SET
+                firstname = $1, lastname = $2, phonenumber = $3, email = $4,
+                position = $5, department = $6, monthlysalary = $7
+             WHERE staffid = $8`,
+            [firstName, lastName, phone, email, position, department || null, salary, id]
+        );
 
         await createNotification({
             type: 'info',
@@ -676,19 +517,12 @@ app.put('/api/staff/:id', async (req, res) => {
     }
 });
 
-
 app.delete('/api/staff/:id', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
         const { id } = req.params;
 
-        await pool.request()
-            .input('id', sql.Int, id)
-            .query(`
-                UPDATE Staff
-                SET IsActive = 0
-                WHERE StaffID = @id
-            `);
+        await pool.query('UPDATE staff SET isactive = false WHERE staffid = $1', [id]);
 
         await createNotification({
             type: 'warning',
@@ -703,55 +537,45 @@ app.delete('/api/staff/:id', async (req, res) => {
     }
 });
 
-
-
+// Sponsorships
 app.get('/api/sponsorships', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
-        const result = await pool.request().query(`
+        const result = await pool.query(`
             SELECT
-                s.SponsorshipID as id,
-                s.DonorID as donorId,
-                d.FirstName + ' ' + d.LastName as donorName,
-                s.BeneficiaryID as orphanId,
-                b.FirstName + ' ' + b.LastName as orphanName,
-                s.MonthlyAmount as monthlyAmount,
-                s.PaymentFrequency as paymentFrequency,
-                s.IsActive as isActive,
-                FORMAT(s.StartDate, 'dd/MM/yyyy') as startDate
-            FROM OrphanSponsorship s
-            INNER JOIN Donors d ON s.DonorID = d.DonorID
-            INNER JOIN Beneficiaries b ON s.BeneficiaryID = b.BeneficiaryID
-            ORDER BY s.StartDate DESC
+                s.sponsorshipid as id,
+                s.donorid as "donorId",
+                d.firstname || ' ' || d.lastname as "donorName",
+                s.beneficiaryid as "orphanId",
+                b.firstname || ' ' || b.lastname as "orphanName",
+                s.monthlyamount as "monthlyAmount",
+                s.paymentfrequency as "paymentFrequency",
+                s.isactive as "isActive",
+                TO_CHAR(s.startdate, 'DD/MM/YYYY') as "startDate"
+            FROM orphansponsorship s
+            INNER JOIN donors d ON s.donorid = d.donorid
+            INNER JOIN beneficiaries b ON s.beneficiaryid = b.beneficiaryid
+            ORDER BY s.startdate DESC
         `);
 
-        res.json(result.recordset);
+        res.json(result.rows);
     } catch (err) {
         console.error('Sponsorluklar alınırken hata oluştu:', err);
         res.status(500).json({ error: 'Sponsorluklar alınırken hata oluştu' });
     }
 });
 
-
 app.post('/api/sponsorships', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
         const { donorId, beneficiaryId, monthlyAmount, paymentFrequency } = req.body;
 
-        const result = await pool.request()
-            .input('donorId', sql.Int, donorId)
-            .input('beneficiaryId', sql.Int, beneficiaryId)
-            .input('monthlyAmount', sql.Decimal(18, 2), monthlyAmount)
-            .input('paymentFrequency', sql.NVarChar(20), paymentFrequency)
-            .query(`
-                INSERT INTO OrphanSponsorship (
-                    DonorID, BeneficiaryID, MonthlyAmount, PaymentFrequency, IsActive
-                )
-                VALUES (
-                    @donorId, @beneficiaryId, @monthlyAmount, @paymentFrequency, 1
-                );
-                SELECT SCOPE_IDENTITY() AS id;
-            `);
+        const result = await pool.query(
+            `INSERT INTO orphansponsorship (donorid, beneficiaryid, monthlyamount, paymentfrequency, isactive)
+             VALUES ($1, $2, $3, $4, true)
+             RETURNING sponsorshipid as id`,
+            [donorId, beneficiaryId, monthlyAmount, paymentFrequency]
+        );
 
         await createNotification({
             type: 'success',
@@ -761,7 +585,7 @@ app.post('/api/sponsorships', async (req, res) => {
 
         res.json({
             success: true,
-            id: result.recordset[0].id,
+            id: result.rows[0].id,
             message: 'Sponsorluk başarıyla kaydedildi'
         });
     } catch (err) {
@@ -770,46 +594,50 @@ app.post('/api/sponsorships', async (req, res) => {
     }
 });
 
-
-
+// Reports
 app.get('/api/reports', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
-        const statsResult = await pool.request().query(`
+        const statsResult = await pool.query(`
             SELECT
-                (SELECT COUNT(*) FROM Donors WHERE IsActive = 1) as totalDonors,
-                (SELECT COUNT(*) FROM Beneficiaries WHERE IsActive = 1) as totalBeneficiaries,
-                (SELECT ISNULL(SUM(DonationAmount), 0) FROM Donations) as totalDonationAmount,
-                (SELECT COUNT(*) FROM AidDistribution) as totalAidDistributions
+                (SELECT COUNT(*) FROM donors WHERE isactive = true) as totaldonors,
+                (SELECT COUNT(*) FROM beneficiaries WHERE isactive = true) as totalbeneficiaries,
+                (SELECT COALESCE(SUM(donationamount), 0) FROM donations) as totaldonationamount,
+                (SELECT COUNT(*) FROM aiddistribution) as totalaiddistributions
         `);
 
-        const topDonorsResult = await pool.request().query(`
-            SELECT TOP 10
-                d.FirstName + ' ' + d.LastName as donorName,
-                COUNT(dn.DonationID) as donationCount,
-                SUM(dn.DonationAmount) as totalAmount
-            FROM Donors d
-            INNER JOIN Donations dn ON d.DonorID = dn.DonorID
-            WHERE d.IsActive = 1
-            GROUP BY d.DonorID, d.FirstName, d.LastName
-            ORDER BY totalAmount DESC
+        const topDonorsResult = await pool.query(`
+            SELECT
+                d.firstname || ' ' || d.lastname as "donorName",
+                COUNT(dn.donationid) as "donationCount",
+                SUM(dn.donationamount) as "totalAmount"
+            FROM donors d
+            INNER JOIN donations dn ON d.donorid = dn.donorid
+            WHERE d.isactive = true
+            GROUP BY d.donorid, d.firstname, d.lastname
+            ORDER BY "totalAmount" DESC
+            LIMIT 10
         `);
 
-        const aidByTypeResult = await pool.request().query(`
+        const aidByTypeResult = await pool.query(`
             SELECT
-                at.AidTypeName as aidType,
-                COUNT(ad.DistributionID) as count,
-                ISNULL(SUM(ad.EstimatedValue), 0) as totalValue
-            FROM AidTypes at
-            LEFT JOIN AidDistribution ad ON at.AidTypeID = ad.AidTypeID
-            GROUP BY at.AidTypeName
+                at.aidtypename as "aidType",
+                COUNT(ad.distributionid) as count,
+                COALESCE(SUM(ad.estimatedvalue), 0) as "totalValue"
+            FROM aidtypes at
+            LEFT JOIN aiddistribution ad ON at.aidtypeid = ad.aidtypeid
+            GROUP BY at.aidtypename
             ORDER BY count DESC
         `);
 
+        const stats = statsResult.rows[0];
         res.json({
-            ...statsResult.recordset[0],
-            topDonors: topDonorsResult.recordset,
-            aidByType: aidByTypeResult.recordset
+            totalDonors: parseInt(stats.totaldonors),
+            totalBeneficiaries: parseInt(stats.totalbeneficiaries),
+            totalDonationAmount: parseFloat(stats.totaldonationamount),
+            totalAidDistributions: parseInt(stats.totalaiddistributions),
+            topDonors: topDonorsResult.rows,
+            aidByType: aidByTypeResult.rows
         });
     } catch (err) {
         console.error('Raporlar alınırken hata oluştu:', err);
@@ -817,41 +645,38 @@ app.get('/api/reports', async (req, res) => {
     }
 });
 
-
+// Notifications
 app.get('/api/notifications', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
-        const result = await pool.request().query(`
-            SELECT TOP (20)
-                NotificationID as id,
-                Title as title,
-                Message as message,
-                Type as type,
-                IsRead as isRead,
-                CreatedAt as createdAt
+        const result = await pool.query(`
+            SELECT
+                notificationid as id,
+                title,
+                message,
+                type,
+                isread as "isRead",
+                createdat as "createdAt"
             FROM ${NOTIFICATIONS_TABLE}
-            ORDER BY CreatedAt DESC
+            ORDER BY createdat DESC
+            LIMIT 20
         `);
 
-        res.json(result.recordset);
+        res.json(result.rows);
     } catch (err) {
         console.error('Bildirimler alınırken hata oluştu:', err);
         res.status(500).json({ error: 'Bildirimler alınırken hata oluştu' });
     }
 });
 
-
 app.post('/api/notifications/:id/read', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
         const { id } = req.params;
-        await pool.request()
-            .input('id', sql.Int, id)
-            .query(`
-                UPDATE ${NOTIFICATIONS_TABLE}
-                SET IsRead = 1
-                WHERE NotificationID = @id
-            `);
+        await pool.query(
+            `UPDATE ${NOTIFICATIONS_TABLE} SET isread = true WHERE notificationid = $1`,
+            [id]
+        );
 
         res.json({ success: true });
     } catch (err) {
@@ -860,16 +685,10 @@ app.post('/api/notifications/:id/read', async (req, res) => {
     }
 });
 
-
 app.post('/api/notifications/read-all', async (req, res) => {
     if (!ensurePool(res)) return;
     try {
-        await pool.request().query(`
-            UPDATE ${NOTIFICATIONS_TABLE}
-            SET IsRead = 1
-            WHERE IsRead = 0
-        `);
-
+        await pool.query(`UPDATE ${NOTIFICATIONS_TABLE} SET isread = true WHERE isread = false`);
         res.json({ success: true });
     } catch (err) {
         console.error('Bildirimler güncellenirken hata oluştu:', err);
@@ -877,9 +696,9 @@ app.post('/api/notifications/read-all', async (req, res) => {
     }
 });
 
-
+// Start server
 connectDB().then(() => {
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`\n========================================`);
         console.log(`🚀 IHH sunucusu ${PORT} portunda çalışıyor`);
         console.log(`🌐 Tarayıcıda aç: http://localhost:${PORT}`);
@@ -892,10 +711,8 @@ connectDB().then(() => {
 
 process.on('SIGINT', async () => {
     console.log('\n\n⏳ Sunucu kapatılıyor...');
-    if (pool) {
-        await pool.close();
-        console.log('✓ Veritabanı bağlantısı kapatıldı');
-    }
+    await pool.end();
+    console.log('✓ Veritabanı bağlantısı kapatıldı');
     console.log('✓ Sunucu başarıyla durduruldu\n');
     process.exit(0);
 });

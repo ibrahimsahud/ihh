@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: ihh
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ihh
+          property: connectionString
+
+databases:
+  - name: ihh
+    plan: free

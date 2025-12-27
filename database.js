@@ -2,14 +2,16 @@
 
 const sql = require('mssql');
 
+// Configuration for database connection
+// Use environment variables in production, fallback to local values for development
 const config = {
-    user: 'ihhuser',
-    password: 'IHH@2025',
-    server: 'IBOO',
-    database: 'IHH_Hayir',
+    user: process.env.DB_USER || 'ihhuser',
+    password: process.env.DB_PASSWORD || 'IHH@2025',
+    server: process.env.DB_SERVER || 'IBOO',
+    database: process.env.DB_NAME || 'IHH_Hayir',
     options: {
-        encrypt: true,
-        trustServerCertificate: true,
+        encrypt: process.env.DB_ENCRYPT === 'true' || true,
+        trustServerCertificate: process.env.DB_TRUST_CERT === 'true' || true,
         enableArithAbort: true
     },
     connectionTimeout: 30000,

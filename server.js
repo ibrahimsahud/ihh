@@ -27,21 +27,194 @@ function ensurePool(res) {
     return true;
 }
 
-async function ensureNotificationTable() {
-    const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS ${NOTIFICATIONS_TABLE} (
+// Create all database tables automatically
+async function initializeDatabase() {
+    const createTablesQuery = `
+        -- Branches table
+        CREATE TABLE IF NOT EXISTS branches (
+            branchid SERIAL PRIMARY KEY,
+            branchname VARCHAR(100) NOT NULL,
+            address VARCHAR(200),
+            city VARCHAR(50),
+            country VARCHAR(50) DEFAULT 'Turkey',
+            phonenumber VARCHAR(20),
+            email VARCHAR(100),
+            isactive BOOLEAN DEFAULT TRUE,
+            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Donors table
+        CREATE TABLE IF NOT EXISTS donors (
+            donorid SERIAL PRIMARY KEY,
+            firstname VARCHAR(50) NOT NULL,
+            lastname VARCHAR(50) NOT NULL,
+            phonenumber VARCHAR(20),
+            email VARCHAR(100),
+            address VARCHAR(200),
+            city VARCHAR(50),
+            country VARCHAR(50) DEFAULT 'Turkey',
+            donortype VARCHAR(20) NOT NULL,
+            registrationdate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            isactive BOOLEAN DEFAULT TRUE
+        );
+
+        -- Beneficiaries table
+        CREATE TABLE IF NOT EXISTS beneficiaries (
+            beneficiaryid SERIAL PRIMARY KEY,
+            firstname VARCHAR(50) NOT NULL,
+            lastname VARCHAR(50) NOT NULL,
+            phonenumber VARCHAR(20),
+            address VARCHAR(200),
+            city VARCHAR(50),
+            country VARCHAR(50) DEFAULT 'Turkey',
+            beneficiarytype VARCHAR(20) NOT NULL,
+            familysize INTEGER DEFAULT 1,
+            monthlyincome DECIMAL(18, 2) DEFAULT 0,
+            registrationdate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            isactive BOOLEAN DEFAULT TRUE
+        );
+
+        -- Staff table
+        CREATE TABLE IF NOT EXISTS staff (
+            staffid SERIAL PRIMARY KEY,
+            firstname VARCHAR(50) NOT NULL,
+            lastname VARCHAR(50) NOT NULL,
+            phonenumber VARCHAR(20),
+            email VARCHAR(100),
+            position VARCHAR(50) NOT NULL,
+            department VARCHAR(50),
+            monthlysalary DECIMAL(18, 2),
+            hiredate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            isactive BOOLEAN DEFAULT TRUE
+        );
+
+        -- Aid Types table
+        CREATE TABLE IF NOT EXISTS aidtypes (
+            aidtypeid SERIAL PRIMARY KEY,
+            aidtypename VARCHAR(50) NOT NULL UNIQUE,
+            description VARCHAR(200),
+            isactive BOOLEAN DEFAULT TRUE
+        );
+
+        -- Donations table
+        CREATE TABLE IF NOT EXISTS donations (
+            donationid SERIAL PRIMARY KEY,
+            donorid INTEGER REFERENCES donors(donorid),
+            branchid INTEGER REFERENCES branches(branchid),
+            donationamount DECIMAL(18, 2) NOT NULL,
+            donationcurrency VARCHAR(10) DEFAULT 'TRY',
+            donationtype VARCHAR(20) NOT NULL,
+            paymentmethod VARCHAR(20) NOT NULL,
+            notes VARCHAR(500),
+            donationdate TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Aid Distribution table
+        CREATE TABLE IF NOT EXISTS aiddistribution (
+            distributionid SERIAL PRIMARY KEY,
+            beneficiaryid INTEGER REFERENCES beneficiaries(beneficiaryid),
+            branchid INTEGER REFERENCES branches(branchid),
+            aidtypeid INTEGER REFERENCES aidtypes(aidtypeid),
+            quantity INTEGER DEFAULT 1,
+            estimatedvalue DECIMAL(18, 2),
+            notes VARCHAR(500),
+            distributiondate TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Orphan Sponsorship table
+        CREATE TABLE IF NOT EXISTS orphansponsorship (
+            sponsorshipid SERIAL PRIMARY KEY,
+            donorid INTEGER REFERENCES donors(donorid),
+            beneficiaryid INTEGER REFERENCES beneficiaries(beneficiaryid),
+            monthlyamount DECIMAL(18, 2) NOT NULL,
+            paymentfrequency VARCHAR(20) NOT NULL,
+            startdate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            enddate TIMESTAMP,
+            isactive BOOLEAN DEFAULT TRUE
+        );
+
+        -- System Notifications table
+        CREATE TABLE IF NOT EXISTS systemnotifications (
             notificationid SERIAL PRIMARY KEY,
             title VARCHAR(150) NOT NULL,
             message VARCHAR(500) NOT NULL,
-            type VARCHAR(20) NOT NULL DEFAULT 'info',
-            createdat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            isread BOOLEAN NOT NULL DEFAULT FALSE
-        )`;
+            type VARCHAR(20) DEFAULT 'info',
+            createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            isread BOOLEAN DEFAULT FALSE
+        );
+    `;
 
     try {
-        await pool.query(createTableQuery);
+        await pool.query(createTablesQuery);
+        console.log('✓ Tüm tablolar başarıyla oluşturuldu');
+        
+        // Insert default data if not exists
+        await insertDefaultData();
     } catch (err) {
-        console.error('Bildirim tablosu oluşturulamadı:', err.message);
+        console.error('Tablolar oluşturulurken hata:', err.message);
+    }
+}
+
+async function insertDefaultData() {
+    try {
+        // Check if default branch exists
+        const branchCheck = await pool.query('SELECT COUNT(*) FROM branches');
+        if (parseInt(branchCheck.rows[0].count) === 0) {
+            await pool.query("INSERT INTO branches (branchname, city, country) VALUES ('Merkez Şube', 'Istanbul', 'Turkey')");
+            console.log('✓ Varsayılan şube eklendi');
+        }
+
+        // Check if aid types exist
+        const aidCheck = await pool.query('SELECT COUNT(*) FROM aidtypes');
+        if (parseInt(aidCheck.rows[0].count) === 0) {
+            await pool.query(`
+                INSERT INTO aidtypes (aidtypename, description) VALUES 
+                ('Gıda', 'Gıda yardımları'),
+                ('Giyim', 'Giysi ve kıyafet yardımları'),
+                ('Eğitim', 'Eğitim malzemeleri ve burs'),
+                ('Sağlık', 'Sağlık hizmetleri ve ilaç'),
+                ('Barınma', 'Barınma ve kira yardımı'),
+                ('Nakit', 'Nakit para yardımı'),
+                ('Diğer', 'Diğer yardım türleri')
+            `);
+            console.log('✓ Yardım türleri eklendi');
+        }
+
+        // Add sample data
+        const donorCheck = await pool.query('SELECT COUNT(*) FROM donors');
+        if (parseInt(donorCheck.rows[0].count) === 0) {
+            await pool.query(`
+                INSERT INTO donors (firstname, lastname, phonenumber, email, city, country, donortype) VALUES 
+                ('Ahmet', 'Yılmaz', '05551234567', 'ahmet@email.com', 'Istanbul', 'Turkey', 'Bireysel'),
+                ('Fatma', 'Kaya', '05559876543', 'fatma@email.com', 'Ankara', 'Turkey', 'Bireysel'),
+                ('ABC', 'Şirketi', '02121234567', 'info@abc.com', 'Istanbul', 'Turkey', 'Kurumsal')
+            `);
+            console.log('✓ Örnek bağışçılar eklendi');
+        }
+
+        const beneficiaryCheck = await pool.query('SELECT COUNT(*) FROM beneficiaries');
+        if (parseInt(beneficiaryCheck.rows[0].count) === 0) {
+            await pool.query(`
+                INSERT INTO beneficiaries (firstname, lastname, phonenumber, city, country, beneficiarytype, familysize) VALUES 
+                ('Mehmet', 'Demir', '05551112233', 'Gaziantep', 'Turkey', 'Aile', 5),
+                ('Ayşe', 'Çelik', '05554445566', 'Hatay', 'Turkey', 'Yetim', 1),
+                ('Ali', 'Öztürk', '05557778899', 'Şanlıurfa', 'Turkey', 'Aile', 4)
+            `);
+            console.log('✓ Örnek yararlanıcılar eklendi');
+        }
+
+        const staffCheck = await pool.query('SELECT COUNT(*) FROM staff');
+        if (parseInt(staffCheck.rows[0].count) === 0) {
+            await pool.query(`
+                INSERT INTO staff (firstname, lastname, phonenumber, email, position, department, monthlysalary) VALUES 
+                ('Mustafa', 'Şahin', '05551111111', 'mustafa@ihh.org', 'Müdür', 'Yönetim', 15000),
+                ('Zeynep', 'Arslan', '05552222222', 'zeynep@ihh.org', 'Koordinatör', 'Yardım', 10000)
+            `);
+            console.log('✓ Örnek personel eklendi');
+        }
+
+    } catch (err) {
+        console.error('Varsayılan veriler eklenirken hata:', err.message);
     }
 }
 
@@ -63,7 +236,7 @@ async function connectDB() {
         const client = await pool.connect();
         console.log('✓ PostgreSQL veritabanına başarıyla bağlanıldı');
         client.release();
-        await ensureNotificationTable();
+        await initializeDatabase();
     } catch (err) {
         console.error('✗ Veritabanına bağlanırken hata:', err.message);
         console.log('⚠ Sunucu veritabanı olmadan çalışacak');
